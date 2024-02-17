@@ -1,5 +1,5 @@
-// import fs from 'fs'
-// import yaml from 'js-yaml'
+import fs from 'fs'
+import yaml from 'js-yaml'
 import {graphql} from '@octokit/graphql'
 import {createTokenAuth} from '@octokit/auth-token'
 // import {createAppAuth} from '@octokit/auth-app'
@@ -19,6 +19,8 @@ export default class PopulateBoards {
   async run(): Promise<void> {
     // eslint-disable-next-line no-console
     console.log('Running the populate-boards script')
+
+    const boards = yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')).boards
 
     let auth
     if (this.config.token === null) {
@@ -42,5 +44,10 @@ export default class PopulateBoards {
         hook: auth?.hook
       }
     })
+
+    for (const b of boards) {
+      // eslint-disable-next-line no-console
+      console.log(b)
+    }
   }
 }
