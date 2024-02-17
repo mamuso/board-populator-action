@@ -1,0 +1,12 @@
+name: 'populate-boards-action'
+description: 'An action to compose and populate GitHub org boards (memex) with draft issues.'
+author: 'mamuso <mamuso@mamuso.net>'
+inputs:
+  cards_path:
+    description: 'Path to the cards to populate the board with.'
+    default: 'cards/'
+  token:
+    description: 'Token to authenticate with GitHub'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
