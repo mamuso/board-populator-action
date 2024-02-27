@@ -17,14 +17,8 @@ export default class PopulateBoard {
   }
 
   async run(): Promise<void> {
-    // eslint-disable-next-line no-console
-    console.log('Running the populate-boards script')
-
     const boardsData: string = JSON.stringify(yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')))
     const boards: board[] = JSON.parse(boardsData).boards
-
-    // eslint-disable-next-line no-console
-    console.log(`${boards[0].owner} ----`)
 
     let auth
     if (this.config.token === null) {
@@ -41,11 +35,46 @@ export default class PopulateBoard {
       auth = createTokenAuth(this.config.token ?? '')
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const graphqlWithAuth = graphql.defaults({
       request: {
         hook: auth?.hook
       }
     })
+
+    // iterate over the boards and update the content
+    for (const b of boards) {
+      // eslint-disable-next-line no-console
+      console.log(`Updating board ${b.name}`)
+      // eslint-disable-next-line no-console
+      console.log(`Owner: ${b.owner}`)
+      // eslint-disable-next-line no-console
+      console.log(`Board ID: ${b.board_id}`)
+      // eslint-disable-next-line no-console
+      console.log(`Content: ${b.content}`)
+
+      const boardId = await graphqlWithAuth(`
+        query {
+          organization(login:"${b.owner}"){
+            projectV2(projectId: "${b.board_id}") {
+              id
+              title
+            }
+          }
+        }
+      `)
+
+      // eslint-disable-next-line no-console
+      console.log(boardId)
+
+      // const board = graphqlWithAuth(`
+      //   mutation {
+      //     updateProjectV2(input: {projectId:"PVT_kwDNJr_OAHMVJw", title:"Updated title"}) {
+      //     projectV2 {
+      //       id
+      //       title
+      //     }
+      //   }
+      // `)
+    }
   }
 }

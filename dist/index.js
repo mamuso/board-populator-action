@@ -100,12 +100,8 @@ class PopulateBoard {
     run() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            // eslint-disable-next-line no-console
-            console.log('Running the populate-boards script');
             const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
             const boards = JSON.parse(boardsData).boards;
-            // eslint-disable-next-line no-console
-            console.log(`${boards[0].owner} ----`);
             let auth;
             if (this.config.token === null) {
                 // TODO: Implement app authentication
@@ -127,6 +123,17 @@ class PopulateBoard {
                     hook: auth === null || auth === void 0 ? void 0 : auth.hook
                 }
             });
+            // iterate over the boards and update the content
+            for (const b of boards) {
+                // eslint-disable-next-line no-console
+                console.log(`Updating board ${b.name}`);
+                // eslint-disable-next-line no-console
+                console.log(`Owner: ${b.owner}`);
+                // eslint-disable-next-line no-console
+                console.log(`Board ID: ${b.board_id}`);
+                // eslint-disable-next-line no-console
+                console.log(`Content: ${b.content}`);
+            }
         });
     }
 }

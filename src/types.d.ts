@@ -8,4 +8,5 @@ export interface board {
   name: string
   owner: string
   board_id: number
+  content: string[]
 }
