@@ -24,7 +24,7 @@ export default class PopulateBoard {
     const boards: board[] = JSON.parse(boardsData).boards
 
     // eslint-disable-next-line no-console
-    console.log(boards[0].name)
+    console.log(`${boards[0].owner} ----`)
 
     let auth
     if (this.config.token === null) {
