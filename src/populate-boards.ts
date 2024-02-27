@@ -70,9 +70,10 @@ export default class PopulateBoard {
       graphqlWithAuth(`
         mutation {
           updateProjectV2(input: {projectId:"${projectId}", title:"${b.name}"}) {
-          projectV2 {
-            id
-            title
+            projectV2 {
+              id
+              title
+            }
           }
         }
       `)
