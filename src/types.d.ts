@@ -6,6 +6,7 @@ export interface config {
 
 export interface board {
   name: string
+  description?: string
   owner: string
   board_id: number
   content: string[]

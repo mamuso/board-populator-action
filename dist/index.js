@@ -124,14 +124,7 @@ class PopulateBoard {
             });
             // iterate over the boards and update the content
             for (const b of boards) {
-                // eslint-disable-next-line no-console
-                console.log(`Updating board ${b.name}`);
-                // eslint-disable-next-line no-console
-                console.log(`Owner: ${b.owner}`);
-                // eslint-disable-next-line no-console
-                console.log(`Board ID: ${b.board_id}`);
-                // eslint-disable-next-line no-console
-                console.log(`Content: ${b.content}`);
+                // Get the project ID
                 const projectIdQuery = yield graphqlWithAuth(`
         query {
           organization(login:"${b.owner}"){
@@ -146,7 +139,7 @@ class PopulateBoard {
                 // Update board title
                 graphqlWithAuth(`
         mutation {
-          updateProjectV2(input: {projectId:"${projectId}", title:"${b.name}"}) {
+          updateProjectV2(input: {projectId:"${projectId}", title:"${b.name}", description:"${b.description}"}) {
             projectV2 {
               id
               title
