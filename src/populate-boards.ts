@@ -55,7 +55,7 @@ export default class PopulateBoard {
       const boardId = await graphqlWithAuth(`
         query {
           organization(login:"${b.owner}"){
-            projectV2(projectId: "${b.board_id}") {
+            projectV2(number: "${b.board_id}") {
               id
               title
             }

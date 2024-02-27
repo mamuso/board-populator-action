@@ -135,7 +135,7 @@ class PopulateBoard {
                 const boardId = yield graphqlWithAuth(`
         query {
           organization(login:"${b.owner}"){
-            projectV2(projectId: "${b.board_id}") {
+            projectV2(number: "${b.board_id}") {
               id
               title
             }
