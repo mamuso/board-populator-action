@@ -2,6 +2,7 @@ import fs from 'fs'
 import yaml from 'js-yaml'
 import {graphql} from '@octokit/graphql'
 import {createTokenAuth} from '@octokit/auth-token'
+import type {GraphQlQueryResponseData} from '@octokit/graphql'
 // import {createAppAuth} from '@octokit/auth-app'
 
 import DefaultConfig from './config'
@@ -52,19 +53,18 @@ export default class PopulateBoard {
       // eslint-disable-next-line no-console
       console.log(`Content: ${b.content}`)
 
-      const boardId = await graphqlWithAuth(`
+      const boardId: GraphQlQueryResponseData = await graphqlWithAuth(`
         query {
           organization(login:"${b.owner}"){
             projectV2(number: ${b.board_id}) {
               id
-              title
             }
           }
         }
       `)
 
       // eslint-disable-next-line no-console
-      console.log(boardId)
+      console.log(boardId.organization.projectV2.id)
 
       // const board = graphqlWithAuth(`
       //   mutation {

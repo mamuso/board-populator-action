@@ -137,13 +137,12 @@ class PopulateBoard {
           organization(login:"${b.owner}"){
             projectV2(number: ${b.board_id}) {
               id
-              title
             }
           }
         }
       `);
                 // eslint-disable-next-line no-console
-                console.log(boardId);
+                console.log(boardId.organization.projectV2.id);
                 // const board = graphqlWithAuth(`
                 //   mutation {
                 //     updateProjectV2(input: {projectId:"PVT_kwDNJr_OAHMVJw", title:"Updated title"}) {
