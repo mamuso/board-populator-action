@@ -61,7 +61,7 @@ export default class PopulateBoard {
       // Update board title
       graphqlWithAuth(`
         mutation {
-          updateProjectV2(input: {projectId:"${projectId}", title:"${b.name}", description:"${b.description}"}) {
+          updateProjectV2(input: {projectId:"${projectId}", title:"${b.name}", shortDescription:"${b.description}"}) {
             projectV2 {
               id
               title
