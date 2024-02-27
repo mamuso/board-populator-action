@@ -5,7 +5,7 @@ import {createTokenAuth} from '@octokit/auth-token'
 // import {createAppAuth} from '@octokit/auth-app'
 
 import DefaultConfig from './config'
-import type {config} from './types'
+import type {config, board} from './types'
 
 export default class PopulateBoard {
   config: config
@@ -20,12 +20,11 @@ export default class PopulateBoard {
     // eslint-disable-next-line no-console
     console.log('Running the populate-boards script')
 
-    // const boards: board[] = []
-
-    const boardsData = JSON.stringify(yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')))
+    const boardsData: string = JSON.stringify(yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')))
+    const boards: board[] = JSON.parse(boardsData).boards
 
     // eslint-disable-next-line no-console
-    console.log(boardsData)
+    console.log(boards)
 
     let auth
     if (this.config.token === null) {

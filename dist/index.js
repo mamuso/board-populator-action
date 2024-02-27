@@ -102,10 +102,10 @@ class PopulateBoard {
         return __awaiter(this, void 0, void 0, function* () {
             // eslint-disable-next-line no-console
             console.log('Running the populate-boards script');
-            // const boards: board[] = []
             const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
+            const boards = JSON.parse(boardsData).boards;
             // eslint-disable-next-line no-console
-            console.log(boardsData);
+            console.log(boards);
             let auth;
             if (this.config.token === null) {
                 // TODO: Implement app authentication
