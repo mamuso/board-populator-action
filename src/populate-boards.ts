@@ -53,7 +53,7 @@ export default class PopulateBoard {
       // eslint-disable-next-line no-console
       console.log(`Content: ${b.content}`)
 
-      const boardId: GraphQlQueryResponseData = await graphqlWithAuth(`
+      const projectIdQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
         query {
           organization(login:"${b.owner}"){
             projectV2(number: ${b.board_id}) {
@@ -63,18 +63,19 @@ export default class PopulateBoard {
         }
       `)
 
-      // eslint-disable-next-line no-console
-      console.log(boardId.organization.projectV2.id)
+      const projectId: string = projectIdQuery.organization.projectV2.id
+      // TODO: Throw an error if the project ID is not found
 
-      // const board = graphqlWithAuth(`
-      //   mutation {
-      //     updateProjectV2(input: {projectId:"PVT_kwDNJr_OAHMVJw", title:"Updated title"}) {
-      //     projectV2 {
-      //       id
-      //       title
-      //     }
-      //   }
-      // `)
+      // Update board title
+      graphqlWithAuth(`
+        mutation {
+          updateProjectV2(input: {projectId:"${projectId}", title:"${b.name}"}) {
+          projectV2 {
+            id
+            title
+          }
+        }
+      `)
     }
   }
 }
