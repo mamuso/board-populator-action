@@ -7,7 +7,7 @@ import {createTokenAuth} from '@octokit/auth-token'
 import DefaultConfig from './config'
 import type {config} from './types'
 
-export default class PopulateBoards {
+export default class PopulateBoard {
   config: config
 
   constructor(populateConfig: config) {
@@ -20,7 +20,12 @@ export default class PopulateBoards {
     // eslint-disable-next-line no-console
     console.log('Running the populate-boards script')
 
-    const boards = yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')).boards
+    // const boards: board[] = []
+
+    const boardsData = JSON.stringify(yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')))
+
+    // eslint-disable-next-line no-console
+    console.log(boardsData)
 
     let auth
     if (this.config.token === null) {
@@ -34,8 +39,7 @@ export default class PopulateBoards {
       //   installationId: process.env.INSTALLATION_ID
       // })
     } else {
-      //
-      auth = createTokenAuth(this.config.token)
+      auth = createTokenAuth(this.config.token ?? '')
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -44,10 +48,5 @@ export default class PopulateBoards {
         hook: auth?.hook
       }
     })
-
-    for (const b of boards) {
-      // eslint-disable-next-line no-console
-      console.log(b)
-    }
   }
 }
