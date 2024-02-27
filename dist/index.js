@@ -117,7 +117,6 @@ class PopulateBoard {
             else {
                 auth = (0, auth_token_1.createTokenAuth)((_a = this.config.token) !== null && _a !== void 0 ? _a : '');
             }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const graphqlWithAuth = graphql_1.graphql.defaults({
                 request: {
                     hook: auth === null || auth === void 0 ? void 0 : auth.hook
@@ -133,6 +132,27 @@ class PopulateBoard {
                 console.log(`Board ID: ${b.board_id}`);
                 // eslint-disable-next-line no-console
                 console.log(`Content: ${b.content}`);
+                const boardId = yield graphqlWithAuth(`
+        query {
+          organization(login:"${b.owner}"){
+            projectV2(projectId: "${b.board_id}") {
+              id
+              title
+            }
+          }
+        }
+      `);
+                // eslint-disable-next-line no-console
+                console.log(boardId);
+                // const board = graphqlWithAuth(`
+                //   mutation {
+                //     updateProjectV2(input: {projectId:"PVT_kwDNJr_OAHMVJw", title:"Updated title"}) {
+                //     projectV2 {
+                //       id
+                //       title
+                //     }
+                //   }
+                // `)
             }
         });
     }
