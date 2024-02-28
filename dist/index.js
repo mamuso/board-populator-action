@@ -100,7 +100,7 @@ class PopulateBoard {
         Object.assign(this.config, populateConfig);
     }
     run() {
-        var _a;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
@@ -140,23 +140,10 @@ class PopulateBoard {
                             console.log(c);
                             // eslint-disable-next-line no-console
                             console.log(statusId, statusOptions);
+                            // Add card and set status
+                            const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
+                            yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));
                         }
-                        // // Add card and set status
-                        // const cardId: string = await this.addCard(graphqlWithAuth, projectId)
-                        // await this.updateCardStatus(
-                        //   graphqlWithAuth,
-                        //   projectId,
-                        //   cardId,
-                        //   statusId,
-                        //   this.optionIdByName(statusOptions, 'Todo')
-                        // )
-                        // await this.updateCardStatus(
-                        //   graphqlWithAuth,
-                        //   projectId,
-                        //   cardId,
-                        //   statusId,
-                        //   this.optionIdByName(statusOptions, 'Todo')
-                        // )
                     }
                 }
             }
@@ -252,15 +239,15 @@ class PopulateBoard {
     `);
         });
     }
-    addCard(graphqlWithAuth, projectId) {
+    addCard(graphqlWithAuth, projectId, card) {
         return __awaiter(this, void 0, void 0, function* () {
             const cardQuery = yield graphqlWithAuth(`
       mutation {
         addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "title",
-            body: "body"
+            title: "${card.title}",
+            body: "${card.body}"
           }
         ) {
           projectItem {

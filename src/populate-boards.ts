@@ -69,24 +69,17 @@ export default class PopulateBoard {
 
             // eslint-disable-next-line no-console
             console.log(statusId, statusOptions)
-          }
 
-          // // Add card and set status
-          // const cardId: string = await this.addCard(graphqlWithAuth, projectId)
-          // await this.updateCardStatus(
-          //   graphqlWithAuth,
-          //   projectId,
-          //   cardId,
-          //   statusId,
-          //   this.optionIdByName(statusOptions, 'Todo')
-          // )
-          // await this.updateCardStatus(
-          //   graphqlWithAuth,
-          //   projectId,
-          //   cardId,
-          //   statusId,
-          //   this.optionIdByName(statusOptions, 'Todo')
-          // )
+            // Add card and set status
+            const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+            await this.updateCardStatus(
+              graphqlWithAuth,
+              projectId,
+              cardId,
+              statusId,
+              this.optionIdByName(statusOptions, c.column ?? '')
+            )
+          }
         }
       }
     } catch (error) {
@@ -192,14 +185,14 @@ export default class PopulateBoard {
     `)
   }
 
-  async addCard(graphqlWithAuth: typeof graphql, projectId: string): Promise<string> {
+  async addCard(graphqlWithAuth: typeof graphql, projectId: string, card: Card): Promise<string> {
     const cardQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       mutation {
         addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "title",
-            body: "body"
+            title: "${card.title}",
+            body: "${card.body}"
           }
         ) {
           projectItem {
