@@ -134,12 +134,14 @@ class PopulateBoard {
                         // Load card content from file
                         const cardPath = `${this.config.cards_path}/${content}.yml`;
                         const cardContent = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(cardPath, 'utf8')));
-                        const cards = JSON.parse(cardContent).boards;
+                        const cards = JSON.parse(cardContent).cards;
                         for (const c of cards) {
                             // eslint-disable-next-line no-console
                             console.log(c);
                             // eslint-disable-next-line no-console
-                            console.log(statusId, statusOptions);
+                            console.log(statusId);
+                            // eslint-disable-next-line no-console
+                            console.log(statusOptions);
                         }
                         // // Add card and set status
                         // const cardId: string = await this.addCard(graphqlWithAuth, projectId)

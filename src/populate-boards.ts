@@ -61,14 +61,16 @@ export default class PopulateBoard {
           // Load card content from file
           const cardPath = `${this.config.cards_path}/${content}.yml`
           const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
-          const cards: Card[] = JSON.parse(cardContent).boards
+          const cards: Card[] = JSON.parse(cardContent).cards
 
           for (const c of cards) {
             // eslint-disable-next-line no-console
             console.log(c)
 
             // eslint-disable-next-line no-console
-            console.log(statusId, statusOptions)
+            console.log(statusId)
+            // eslint-disable-next-line no-console
+            console.log(statusOptions)
           }
 
           // // Add card and set status
