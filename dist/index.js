@@ -137,7 +137,7 @@ class PopulateBoard {
                         const cards = JSON.parse(cardContent).cards;
                         for (const c of cards) {
                             // eslint-disable-next-line no-console
-                            console.log(c);
+                            console.log(c.title);
                             // Add card and set status
                             const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
                             yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));

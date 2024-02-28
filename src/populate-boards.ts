@@ -65,7 +65,7 @@ export default class PopulateBoard {
 
           for (const c of cards) {
             // eslint-disable-next-line no-console
-            console.log(c)
+            console.log(c.title)
 
             // Add card and set status
             const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
