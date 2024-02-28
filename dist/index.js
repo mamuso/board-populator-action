@@ -183,7 +183,7 @@ class PopulateBoard {
             body: "body"
           }
         ) {
-          id
+          projectItem
         }
       }
     `);

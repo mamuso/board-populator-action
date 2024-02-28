@@ -106,7 +106,7 @@ export default class PopulateBoard {
             body: "body"
           }
         ) {
-          id
+          projectItem
         }
       }
     `)
