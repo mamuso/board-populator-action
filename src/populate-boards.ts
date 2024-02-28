@@ -6,7 +6,7 @@ import type {GraphQlQueryResponseData} from '@octokit/graphql'
 // import {createAppAuth} from '@octokit/auth-app'
 
 import DefaultConfig from './config'
-import type {Config, Board} from './types'
+import type {Config, Board, Card} from './types'
 
 export default class PopulateBoard {
   config: Config
@@ -44,23 +44,50 @@ export default class PopulateBoard {
           ...b
         }
 
+        // Get the project metadata
         const {projectId, statusId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
 
+        // Empty the project
         await this.emptyProject(graphqlWithAuth, projectId, boardItems)
 
+        // Update the board metadata
         await this.updateBoardMeta(graphqlWithAuth, projectId, board)
 
-        const cardId: string = await this.addCard(graphqlWithAuth, projectId)
-        await this.updateCardStatus(
-          graphqlWithAuth,
-          projectId,
-          cardId,
-          statusId,
-          this.optionIdByName(statusOptions, 'Todo')
-        )
+        // Create cards and set status
+        for (const content of board.content) {
+          // Load card content from file
+          const cardPath = `${this.config.cards_path}/${content}.yml`
+          const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
+          const cards: Card[] = JSON.parse(cardContent).boards
+
+          for (const c of cards) {
+            // eslint-disable-next-line no-console
+            console.log(c)
+
+            // eslint-disable-next-line no-console
+            console.log(statusId, statusOptions)
+          }
+
+          // // Add card and set status
+          // const cardId: string = await this.addCard(graphqlWithAuth, projectId)
+          // await this.updateCardStatus(
+          //   graphqlWithAuth,
+          //   projectId,
+          //   cardId,
+          //   statusId,
+          //   this.optionIdByName(statusOptions, 'Todo')
+          // )
+          // await this.updateCardStatus(
+          //   graphqlWithAuth,
+          //   projectId,
+          //   cardId,
+          //   statusId,
+          //   this.optionIdByName(statusOptions, 'Todo')
+          // )
+        }
       }
     } catch (error) {
       // eslint-disable-next-line no-console

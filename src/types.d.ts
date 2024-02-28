@@ -11,3 +11,9 @@ export interface Board {
   board_id: number
   content: string[]
 }
+
+export interface Card {
+  title: string
+  body?: string
+  column?: string
+}
