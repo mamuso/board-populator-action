@@ -6,7 +6,7 @@ import type {GraphQlQueryResponseData} from '@octokit/graphql'
 // import {createAppAuth} from '@octokit/auth-app'
 
 import DefaultConfig from './config'
-import type {Config, Board, Card} from './types'
+import type {Config, Board} from './types'
 
 export default class PopulateBoard {
   config: Config
@@ -45,7 +45,8 @@ export default class PopulateBoard {
         }
 
         // Get the project metadata
-        const {projectId, statusId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
+        // const {projectId, statusId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
+        const {projectId, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
@@ -56,40 +57,40 @@ export default class PopulateBoard {
         // Update the board metadata
         await this.updateBoardMeta(graphqlWithAuth, projectId, board)
 
-        // Create cards and set status
-        for (const content of board.content) {
-          // Load card content from file
-          const cardPath = `${this.config.cards_path}/${content}.yml`
-          const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
-          const cards: Card[] = JSON.parse(cardContent).cards
+        // // Create cards and set status
+        // for (const content of board.content) {
+        //   // Load card content from file
+        //   const cardPath = `${this.config.cards_path}/${content}.yml`
+        //   const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
+        //   const cards: Card[] = JSON.parse(cardContent).cards
 
-          for (const c of cards) {
-            // eslint-disable-next-line no-console
-            console.log(c)
+        //   for (const c of cards) {
+        //     // eslint-disable-next-line no-console
+        //     console.log(c)
 
-            // eslint-disable-next-line no-console
-            console.log(statusId)
-            // eslint-disable-next-line no-console
-            console.log(statusOptions)
-          }
+        //     // eslint-disable-next-line no-console
+        //     console.log(statusId)
+        //     // eslint-disable-next-line no-console
+        //     console.log(statusOptions)
+        //   }
 
-          // // Add card and set status
-          // const cardId: string = await this.addCard(graphqlWithAuth, projectId)
-          // await this.updateCardStatus(
-          //   graphqlWithAuth,
-          //   projectId,
-          //   cardId,
-          //   statusId,
-          //   this.optionIdByName(statusOptions, 'Todo')
-          // )
-          // await this.updateCardStatus(
-          //   graphqlWithAuth,
-          //   projectId,
-          //   cardId,
-          //   statusId,
-          //   this.optionIdByName(statusOptions, 'Todo')
-          // )
-        }
+        //   // // Add card and set status
+        //   // const cardId: string = await this.addCard(graphqlWithAuth, projectId)
+        //   // await this.updateCardStatus(
+        //   //   graphqlWithAuth,
+        //   //   projectId,
+        //   //   cardId,
+        //   //   statusId,
+        //   //   this.optionIdByName(statusOptions, 'Todo')
+        //   // )
+        //   // await this.updateCardStatus(
+        //   //   graphqlWithAuth,
+        //   //   projectId,
+        //   //   cardId,
+        //   //   statusId,
+        //   //   this.optionIdByName(statusOptions, 'Todo')
+        //   // )
+        // }
       }
     } catch (error) {
       // eslint-disable-next-line no-console

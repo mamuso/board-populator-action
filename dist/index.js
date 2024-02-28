@@ -121,7 +121,8 @@ class PopulateBoard {
                     // Making sure that some board default values are set
                     const board = Object.assign(Object.assign({}, this.boardDefault), b);
                     // Get the project metadata
-                    const { projectId, statusId, statusOptions, boardItems } = yield this.getProjectMetadata(graphqlWithAuth, board);
+                    // const {projectId, statusId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
+                    const { projectId, boardItems } = yield this.getProjectMetadata(graphqlWithAuth, board);
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
@@ -129,37 +130,37 @@ class PopulateBoard {
                     yield this.emptyProject(graphqlWithAuth, projectId, boardItems);
                     // Update the board metadata
                     yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
-                    // Create cards and set status
-                    for (const content of board.content) {
-                        // Load card content from file
-                        const cardPath = `${this.config.cards_path}/${content}.yml`;
-                        const cardContent = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(cardPath, 'utf8')));
-                        const cards = JSON.parse(cardContent).cards;
-                        for (const c of cards) {
-                            // eslint-disable-next-line no-console
-                            console.log(c);
-                            // eslint-disable-next-line no-console
-                            console.log(statusId);
-                            // eslint-disable-next-line no-console
-                            console.log(statusOptions);
-                        }
-                        // // Add card and set status
-                        // const cardId: string = await this.addCard(graphqlWithAuth, projectId)
-                        // await this.updateCardStatus(
-                        //   graphqlWithAuth,
-                        //   projectId,
-                        //   cardId,
-                        //   statusId,
-                        //   this.optionIdByName(statusOptions, 'Todo')
-                        // )
-                        // await this.updateCardStatus(
-                        //   graphqlWithAuth,
-                        //   projectId,
-                        //   cardId,
-                        //   statusId,
-                        //   this.optionIdByName(statusOptions, 'Todo')
-                        // )
-                    }
+                    // // Create cards and set status
+                    // for (const content of board.content) {
+                    //   // Load card content from file
+                    //   const cardPath = `${this.config.cards_path}/${content}.yml`
+                    //   const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
+                    //   const cards: Card[] = JSON.parse(cardContent).cards
+                    //   for (const c of cards) {
+                    //     // eslint-disable-next-line no-console
+                    //     console.log(c)
+                    //     // eslint-disable-next-line no-console
+                    //     console.log(statusId)
+                    //     // eslint-disable-next-line no-console
+                    //     console.log(statusOptions)
+                    //   }
+                    //   // // Add card and set status
+                    //   // const cardId: string = await this.addCard(graphqlWithAuth, projectId)
+                    //   // await this.updateCardStatus(
+                    //   //   graphqlWithAuth,
+                    //   //   projectId,
+                    //   //   cardId,
+                    //   //   statusId,
+                    //   //   this.optionIdByName(statusOptions, 'Todo')
+                    //   // )
+                    //   // await this.updateCardStatus(
+                    //   //   graphqlWithAuth,
+                    //   //   projectId,
+                    //   //   cardId,
+                    //   //   statusId,
+                    //   //   this.optionIdByName(statusOptions, 'Todo')
+                    //   // )
+                    // }
                 }
             }
             catch (error) {
