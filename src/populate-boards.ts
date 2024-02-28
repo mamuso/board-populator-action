@@ -57,7 +57,7 @@ export default class PopulateBoard {
           projectId,
           cardId,
           statusId,
-          this.optionIdByName(statusOptions, 'Done')
+          this.optionIdByName(statusOptions, 'Todo')
         )
       }
     } catch (error) {

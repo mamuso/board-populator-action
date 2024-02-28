@@ -126,7 +126,7 @@ class PopulateBoard {
                     }
                     yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
                     const cardId = yield this.addCard(graphqlWithAuth, projectId);
-                    yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, 'Done'));
+                    yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, 'Todo'));
                 }
             }
             catch (error) {
