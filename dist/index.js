@@ -184,11 +184,11 @@ class PopulateBoard {
     emptyProject(graphqlWithAuth, projectId, boardItems) {
         return __awaiter(this, void 0, void 0, function* () {
             let deleteQuery = '';
-            for (const item of boardItems) {
+            for (const i in boardItems) {
                 deleteQuery += `
-        deleteProjectV2Item(input: {
+        deleteproject${i}: deleteProjectV2Item(input: {
           projectId: "${projectId}",
-          itemId: "${item.node.id}"
+          itemId: "${boardItems[i].node.id}"
         }) {
           clientMutationId
         }
