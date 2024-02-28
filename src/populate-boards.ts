@@ -44,12 +44,15 @@ export default class PopulateBoard {
           ...b
         }
 
-        const {projectId, statusId, statusOptions} = await this.getProjectMetadata(graphqlWithAuth, board)
+        const {projectId, statusId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
 
-        await this.emptyProject(graphqlWithAuth, projectId)
+        // eslint-disable-next-line no-console
+        console.log(boardItems)
+
+        // await this.emptyProject(graphqlWithAuth, projectId)
 
         await this.updateBoardMeta(graphqlWithAuth, projectId, board)
 
@@ -71,7 +74,12 @@ export default class PopulateBoard {
   async getProjectMetadata(
     graphqlWithAuth: typeof graphql,
     board: Board
-  ): Promise<{projectId: string; statusId: string; statusOptions: [{id: string; name: string}]}> {
+  ): Promise<{
+    projectId: string
+    statusId: string
+    statusOptions: [{id: string; name: string}]
+    boardItems: [{node: {id: string}}]
+  }> {
     const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       query {
         organization(login:"${board.owner}"){
@@ -86,6 +94,13 @@ export default class PopulateBoard {
                 }
               }
             }
+            items(first: 100) {
+              edges {
+                node {
+                  id
+                }
+              }
+            }
           }
         }
       }
@@ -94,7 +109,8 @@ export default class PopulateBoard {
     return {
       projectId: projectQuery.organization.projectV2.id,
       statusId: projectQuery.organization.projectV2.field.id,
-      statusOptions: projectQuery.organization.projectV2.field.options
+      statusOptions: projectQuery.organization.projectV2.field.options,
+      boardItems: projectQuery.organization.projectV2.items.edges
     }
   }
 
@@ -108,44 +124,29 @@ export default class PopulateBoard {
     }
   }
 
-  async emptyProject(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
-    const itemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
-      query {
-        node(id: "${projectId}") {
-          ... on ProjectV2 {
-            items(first: 100) {
-              edges {
-                node {
-                  id
-                }
-              }
-            }
-          }
-        }
-      }
-    `)
+  // async emptyProject(graphqlWithAuth: typeof graphql, board: Board): Promise<void> {
 
-    // const deleteQuery = ''
+  // const deleteQuery = ''
 
-    for (const item in itemsQuery.node.items.edges) {
-      // eslint-disable-next-line no-console
-      console.log(item)
-      //   deleteQuery += `
-      //     deleteProjectV2Item(input: {
-      //       projectId: "${projectId}",
-      //       itemId: "${item}"
-      //     }) {
-      //       clientMutationId
-      //     }
-      //   `
-    }
+  // for (const item in itemsQuery.node.items.edges) {
 
-    // await graphqlWithAuth(`
-    //   mutation {
-    //     ${deleteQuery}
-    //   }
-    // `)
-  }
+  // console.log(item)
+  //   deleteQuery += `
+  //     deleteProjectV2Item(input: {
+  //       projectId: "${projectId}",
+  //       itemId: "${item}"
+  //     }) {
+  //       clientMutationId
+  //     }
+  //   `
+  // }
+
+  // await graphqlWithAuth(`
+  //   mutation {
+  //     ${deleteQuery}
+  //   }
+  // `)
+  // }
 
   async updateBoardMeta(graphqlWithAuth: typeof graphql, projectId: string, board: Board): Promise<void> {
     await graphqlWithAuth(`

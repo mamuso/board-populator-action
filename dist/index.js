@@ -120,11 +120,13 @@ class PopulateBoard {
                 for (const b of boards) {
                     // Making sure that some board default values are set
                     const board = Object.assign(Object.assign({}, this.boardDefault), b);
-                    const { projectId, statusId, statusOptions } = yield this.getProjectMetadata(graphqlWithAuth, board);
+                    const { projectId, statusId, statusOptions, boardItems } = yield this.getProjectMetadata(graphqlWithAuth, board);
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
-                    yield this.emptyProject(graphqlWithAuth, projectId);
+                    // eslint-disable-next-line no-console
+                    console.log(boardItems);
+                    // await this.emptyProject(graphqlWithAuth, projectId)
                     yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
                     const cardId = yield this.addCard(graphqlWithAuth, projectId);
                     yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, 'Todo'));
@@ -152,6 +154,13 @@ class PopulateBoard {
                 }
               }
             }
+            items(first: 100) {
+              edges {
+                node {
+                  id
+                }
+              }
+            }
           }
         }
       }
@@ -159,7 +168,8 @@ class PopulateBoard {
             return {
                 projectId: projectQuery.organization.projectV2.id,
                 statusId: projectQuery.organization.projectV2.field.id,
-                statusOptions: projectQuery.organization.projectV2.field.options
+                statusOptions: projectQuery.organization.projectV2.field.options,
+                boardItems: projectQuery.organization.projectV2.items.edges
             };
         });
     }
@@ -173,43 +183,26 @@ class PopulateBoard {
             // throw new Error(`Status option not found: ${name}`)
         }
     }
-    emptyProject(graphqlWithAuth, projectId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const itemsQuery = yield graphqlWithAuth(`
-      query {
-        node(id: "${projectId}") {
-          ... on ProjectV2 {
-            items(first: 100) {
-              edges {
-                node {
-                  id
-                }
-              }
-            }
-          }
-        }
-      }
-    `);
-            // const deleteQuery = ''
-            for (const item in itemsQuery.node.items.edges) {
-                // eslint-disable-next-line no-console
-                console.log(item);
-                //   deleteQuery += `
-                //     deleteProjectV2Item(input: {
-                //       projectId: "${projectId}",
-                //       itemId: "${item}"
-                //     }) {
-                //       clientMutationId
-                //     }
-                //   `
-            }
-            // await graphqlWithAuth(`
-            //   mutation {
-            //     ${deleteQuery}
-            //   }
-            // `)
-        });
-    }
+    // async emptyProject(graphqlWithAuth: typeof graphql, board: Board): Promise<void> {
+    // const deleteQuery = ''
+    // for (const item in itemsQuery.node.items.edges) {
+    // eslint-disable-next-line no-console
+    // console.log(item)
+    //   deleteQuery += `
+    //     deleteProjectV2Item(input: {
+    //       projectId: "${projectId}",
+    //       itemId: "${item}"
+    //     }) {
+    //       clientMutationId
+    //     }
+    //   `
+    // }
+    // await graphqlWithAuth(`
+    //   mutation {
+    //     ${deleteQuery}
+    //   }
+    // `)
+    // }
     updateBoardMeta(graphqlWithAuth, projectId, board) {
         return __awaiter(this, void 0, void 0, function* () {
             yield graphqlWithAuth(`
