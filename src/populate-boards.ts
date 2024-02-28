@@ -123,16 +123,26 @@ export default class PopulateBoard {
       }
     `)
 
-    // eslint-disable-next-line no-console
-    console.log(itemsQuery)
+    let deleteQuery = ''
 
-    // await graphqlWithAuth(`
-    //   mutation {
-    //     deleteProjectV2(input: {projectId: "${projectId}"}) {
-    //       clientMutationId
-    //     }
-    //   }
-    // `)
+    for (const item in itemsQuery.node.items.nodes) {
+      // eslint-disable-next-line no-console
+      console.log(item)
+      deleteQuery += `
+        deleteProjectV2Item(input: {
+          projectId: "${projectId}",
+          itemId: "${item}"
+        }) {
+          clientMutationId
+        }
+      `
+    }
+
+    await graphqlWithAuth(`
+      mutation {
+        ${deleteQuery}
+      }
+    `)
   }
 
   async updateBoardMeta(graphqlWithAuth: typeof graphql, projectId: string, board: Board): Promise<void> {

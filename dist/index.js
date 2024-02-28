@@ -188,15 +188,24 @@ class PopulateBoard {
         }
       }
     `);
-            // eslint-disable-next-line no-console
-            console.log(itemsQuery);
-            // await graphqlWithAuth(`
-            //   mutation {
-            //     deleteProjectV2(input: {projectId: "${projectId}"}) {
-            //       clientMutationId
-            //     }
-            //   }
-            // `)
+            let deleteQuery = '';
+            for (const item in itemsQuery.node.items.nodes) {
+                // eslint-disable-next-line no-console
+                console.log(item);
+                deleteQuery += `
+        deleteProjectV2Item(input: {
+          projectId: "${projectId}",
+          itemId: "${item}"
+        }) {
+          clientMutationId
+        }
+      `;
+            }
+            yield graphqlWithAuth(`
+      mutation {
+        ${deleteQuery}
+      }
+    `);
         });
     }
     updateBoardMeta(graphqlWithAuth, projectId, board) {
