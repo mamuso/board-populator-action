@@ -98,7 +98,7 @@ class PopulateBoard {
         Object.assign(this.config, populateConfig);
     }
     run() {
-        var _a, _b;
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
             const boards = JSON.parse(boardsData).boards;
@@ -143,7 +143,7 @@ class PopulateBoard {
             input: {
               projectId: "${projectId}",
               title: "${b.name}",
-              shortDescription: "${(_b = b.description) !== null && _b !== void 0 ? _b : ''}"
+              shortDescription: "${b.description === undefined ? '' : b.description}"
             }
           ) {
             projectV2 {

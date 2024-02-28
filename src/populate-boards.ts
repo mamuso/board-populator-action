@@ -65,7 +65,7 @@ export default class PopulateBoard {
             input: {
               projectId: "${projectId}",
               title: "${b.name}",
-              shortDescription: "${b.description ?? ''}"
+              shortDescription: "${b.description === undefined ? '' : b.description}"
             }
           ) {
             projectV2 {
