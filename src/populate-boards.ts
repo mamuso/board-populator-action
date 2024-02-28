@@ -114,8 +114,10 @@ export default class PopulateBoard {
         node(id: "${projectId}") {
           ... on ProjectV2 {
             items(first: 100) {
-              nodes {
-                id
+              edges {
+                node {
+                  id
+                }
               }
             }
           }
@@ -123,26 +125,26 @@ export default class PopulateBoard {
       }
     `)
 
-    let deleteQuery = ''
+    // const deleteQuery = ''
 
-    for (const item in itemsQuery.node.items.nodes) {
+    for (const item in itemsQuery.node.items.edges) {
       // eslint-disable-next-line no-console
       console.log(item)
-      deleteQuery += `
-        deleteProjectV2Item(input: {
-          projectId: "${projectId}",
-          itemId: "${item}"
-        }) {
-          clientMutationId
-        }
-      `
+      //   deleteQuery += `
+      //     deleteProjectV2Item(input: {
+      //       projectId: "${projectId}",
+      //       itemId: "${item}"
+      //     }) {
+      //       clientMutationId
+      //     }
+      //   `
     }
 
-    await graphqlWithAuth(`
-      mutation {
-        ${deleteQuery}
-      }
-    `)
+    // await graphqlWithAuth(`
+    //   mutation {
+    //     ${deleteQuery}
+    //   }
+    // `)
   }
 
   async updateBoardMeta(graphqlWithAuth: typeof graphql, projectId: string, board: Board): Promise<void> {

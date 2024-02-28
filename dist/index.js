@@ -180,32 +180,34 @@ class PopulateBoard {
         node(id: "${projectId}") {
           ... on ProjectV2 {
             items(first: 100) {
-              nodes {
-                id
+              edges {
+                node {
+                  id
+                }
               }
             }
           }
         }
       }
     `);
-            let deleteQuery = '';
-            for (const item in itemsQuery.node.items.nodes) {
+            // const deleteQuery = ''
+            for (const item in itemsQuery.node.items.edges) {
                 // eslint-disable-next-line no-console
                 console.log(item);
-                deleteQuery += `
-        deleteProjectV2Item(input: {
-          projectId: "${projectId}",
-          itemId: "${item}"
-        }) {
-          clientMutationId
-        }
-      `;
+                //   deleteQuery += `
+                //     deleteProjectV2Item(input: {
+                //       projectId: "${projectId}",
+                //       itemId: "${item}"
+                //     }) {
+                //       clientMutationId
+                //     }
+                //   `
             }
-            yield graphqlWithAuth(`
-      mutation {
-        ${deleteQuery}
-      }
-    `);
+            // await graphqlWithAuth(`
+            //   mutation {
+            //     ${deleteQuery}
+            //   }
+            // `)
         });
     }
     updateBoardMeta(graphqlWithAuth, projectId, board) {
