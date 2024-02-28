@@ -1,8 +1,8 @@
-import type {config} from './types'
+import type {Config} from './types'
 
 // DefaultConfig is a class that sets the default configuration for the action
 export default class DefaultConfig {
-  config: config
+  config: Config
   constructor() {
     this.config = {
       cards_path: 'cards',

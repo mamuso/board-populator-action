@@ -93,67 +93,77 @@ const auth_token_1 = __nccwpck_require__(334);
 const config_1 = __importDefault(__nccwpck_require__(88));
 class PopulateBoard {
     constructor(populateConfig) {
-        // Merge the default configuration with the user's configuration
+        this.boardDefault = {
+            description: ''
+        };
         this.config = new config_1.default().config;
         Object.assign(this.config, populateConfig);
     }
     run() {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
-            const boards = JSON.parse(boardsData).boards;
-            let auth;
-            if (this.config.token === null) {
-                // TODO: Implement app authentication
-                // assumes app authentication
-                // auth = createAppAuth({
-                //   appId: process.env.APP_ID,
-                //   privateKey: process.env.PRIVATE_KEY,
-                //   clientId: process.env.CLIENT_ID,
-                //   clientSecret: process.env.CLIENT_SECRET,
-                //   installationId: process.env.INSTALLATION_ID
-                // })
-            }
-            else {
-                auth = (0, auth_token_1.createTokenAuth)((_a = this.config.token) !== null && _a !== void 0 ? _a : '');
-            }
-            const graphqlWithAuth = graphql_1.graphql.defaults({
-                request: {
-                    hook: auth === null || auth === void 0 ? void 0 : auth.hook
+            try {
+                const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
+                const boards = JSON.parse(boardsData).boards;
+                let auth;
+                if (this.config.token === null) {
+                    // TODO: Implement app authentication
                 }
-            });
-            // iterate over the boards and update the content
-            for (const b of boards) {
-                // Get the project ID
-                const projectIdQuery = yield graphqlWithAuth(`
-        query {
-          organization(login:"${b.owner}"){
-            projectV2(number: ${b.board_id}) {
-              id
+                else {
+                    auth = (0, auth_token_1.createTokenAuth)((_a = this.config.token) !== null && _a !== void 0 ? _a : '');
+                }
+                const graphqlWithAuth = graphql_1.graphql.defaults({
+                    request: {
+                        hook: auth === null || auth === void 0 ? void 0 : auth.hook
+                    }
+                });
+                for (const b of boards) {
+                    // Making sure that some board default values are set
+                    const board = Object.assign(Object.assign({}, this.boardDefault), b);
+                    const projectId = yield this.getProjectId(graphqlWithAuth, board);
+                    if (!projectId) {
+                        throw new Error('Project ID not found');
+                    }
+                    yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
+                }
             }
+            catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(error);
+            }
+        });
+    }
+    getProjectId(graphqlWithAuth, board) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const projectIdQuery = yield graphqlWithAuth(`
+      query {
+        organization(login:"${board.owner}"){
+          projectV2(number: ${board.board_id}) {
+            id
           }
         }
-      `);
-                const projectId = projectIdQuery.organization.projectV2.id;
-                // TODO: Throw an error if the project ID is not found
-                // Update board title
-                graphqlWithAuth(`
-        mutation {
-          updateProjectV2(
-            input: {
-              projectId: "${projectId}",
-              title: "${b.name}",
-              shortDescription: "${b.description === undefined ? '' : b.description}"
-            }
-          ) {
-            projectV2 {
-              id
-              title
-            }
+      }
+    `);
+            return projectIdQuery.organization.projectV2.id;
+        });
+    }
+    updateBoardMeta(graphqlWithAuth, projectId, board) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield graphqlWithAuth(`
+      mutation {
+        updateProjectV2(
+          input: {
+            projectId: "${projectId}",
+            title: "${board.name}",
+            shortDescription: "${board.description}"
+          }
+        ) {
+          projectV2 {
+            id
           }
         }
-      `);
-            }
+      }
+    `);
         });
     }
 }

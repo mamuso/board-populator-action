@@ -1,8 +1,8 @@
 import PopulateBoards from './populate-boards'
 import * as core from '@actions/core'
-import type {config} from './types'
+import type {Config} from './types'
 
-const populateConfig: config = {
+const populateConfig: Config = {
   cards_path: core.getInput('cards_path'),
   boards: core.getInput('boards'),
   token: core.getInput('token')

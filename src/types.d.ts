@@ -1,10 +1,10 @@
-export interface config {
+export interface Config {
   cards_path?: string
   boards?: string
   token?: string | null
 }
 
-export interface board {
+export interface Board {
   name: string
   description?: string
   owner: string
