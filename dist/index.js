@@ -124,6 +124,7 @@ class PopulateBoard {
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
+                    yield this.emptyProject(graphqlWithAuth, projectId);
                     yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
                     const cardId = yield this.addCard(graphqlWithAuth, projectId);
                     yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, 'Todo'));
@@ -171,6 +172,32 @@ class PopulateBoard {
             return undefined;
             // throw new Error(`Status option not found: ${name}`)
         }
+    }
+    emptyProject(graphqlWithAuth, projectId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const itemsQuery = yield graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+            items(first: 100) {
+              nodes {
+                id
+              }
+            }
+          }
+        }
+      }
+    `);
+            // eslint-disable-next-line no-console
+            console.log(itemsQuery);
+            // await graphqlWithAuth(`
+            //   mutation {
+            //     deleteProjectV2(input: {projectId: "${projectId}"}) {
+            //       clientMutationId
+            //     }
+            //   }
+            // `)
+        });
     }
     updateBoardMeta(graphqlWithAuth, projectId, board) {
         return __awaiter(this, void 0, void 0, function* () {

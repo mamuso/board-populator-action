@@ -49,6 +49,8 @@ export default class PopulateBoard {
           throw new Error('Project ID not found')
         }
 
+        await this.emptyProject(graphqlWithAuth, projectId)
+
         await this.updateBoardMeta(graphqlWithAuth, projectId, board)
 
         const cardId: string = await this.addCard(graphqlWithAuth, projectId)
@@ -104,6 +106,33 @@ export default class PopulateBoard {
       return undefined
       // throw new Error(`Status option not found: ${name}`)
     }
+  }
+
+  async emptyProject(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
+    const itemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+            items(first: 100) {
+              nodes {
+                id
+              }
+            }
+          }
+        }
+      }
+    `)
+
+    // eslint-disable-next-line no-console
+    console.log(itemsQuery)
+
+    // await graphqlWithAuth(`
+    //   mutation {
+    //     deleteProjectV2(input: {projectId: "${projectId}"}) {
+    //       clientMutationId
+    //     }
+    //   }
+    // `)
   }
 
   async updateBoardMeta(graphqlWithAuth: typeof graphql, projectId: string, board: Board): Promise<void> {
