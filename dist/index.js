@@ -98,7 +98,7 @@ class PopulateBoard {
         Object.assign(this.config, populateConfig);
     }
     run() {
-        var _a;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
             const boards = JSON.parse(boardsData).boards;
@@ -139,7 +139,13 @@ class PopulateBoard {
                 // Update board title
                 graphqlWithAuth(`
         mutation {
-          updateProjectV2(input: {projectId:"${projectId}", title:"${b.name}", shortDescription:"${b.description}"}) {
+          updateProjectV2(
+            input: {
+              projectId: "${projectId}",
+              title: "${b.name}",
+              shortDescription: "${(_b = b.description) !== null && _b !== void 0 ? _b : ''}"
+            }
+          ) {
             projectV2 {
               id
               title
