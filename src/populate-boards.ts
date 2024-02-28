@@ -50,6 +50,8 @@ export default class PopulateBoard {
         }
 
         await this.updateBoardMeta(graphqlWithAuth, projectId, board)
+
+        await this.addCard(graphqlWithAuth, projectId)
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -63,6 +65,11 @@ export default class PopulateBoard {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
+            views (first: 1) {
+              nodes {
+                id
+              }
+            }
           }
         }
       }
@@ -84,6 +91,22 @@ export default class PopulateBoard {
           projectV2 {
             id
           }
+        }
+      }
+    `)
+  }
+
+  async addCard(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
+    await graphqlWithAuth(`
+      mutation {
+        addProjectV2DraftIssue(
+          input: {
+            projectId: "${projectId}",
+            title: "title",
+            body: "body"
+          }
+        ) {
+          id
         }
       }
     `)

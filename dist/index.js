@@ -125,6 +125,7 @@ class PopulateBoard {
                         throw new Error('Project ID not found');
                     }
                     yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
+                    yield this.addCard(graphqlWithAuth, projectId);
                 }
             }
             catch (error) {
@@ -140,6 +141,11 @@ class PopulateBoard {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
+            views (first: 1) {
+              nodes {
+                id
+              }
+            }
           }
         }
       }
@@ -161,6 +167,23 @@ class PopulateBoard {
           projectV2 {
             id
           }
+        }
+      }
+    `);
+        });
+    }
+    addCard(graphqlWithAuth, projectId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield graphqlWithAuth(`
+      mutation {
+        addProjectV2DraftIssue(
+          input: {
+            projectId: "${projectId}",
+            title: "title",
+            body: "body"
+          }
+        ) {
+          id
         }
       }
     `);
