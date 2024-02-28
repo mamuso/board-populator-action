@@ -44,14 +44,21 @@ export default class PopulateBoard {
           ...b
         }
 
-        const projectId: string = await this.getProjectId(graphqlWithAuth, board)
+        const {projectId, statusId, statusOptions} = await this.getProjectMetadata(graphqlWithAuth, board)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
 
         await this.updateBoardMeta(graphqlWithAuth, projectId, board)
 
-        await this.addCard(graphqlWithAuth, projectId)
+        const cardId: string = await this.addCard(graphqlWithAuth, projectId)
+        await this.updateCardStatus(
+          graphqlWithAuth,
+          projectId,
+          cardId,
+          statusId,
+          this.optionIdByName(statusOptions, 'Done')
+        )
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -59,15 +66,21 @@ export default class PopulateBoard {
     }
   }
 
-  async getProjectId(graphqlWithAuth: typeof graphql, board: Board): Promise<string> {
-    const projectIdQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+  async getProjectMetadata(
+    graphqlWithAuth: typeof graphql,
+    board: Board
+  ): Promise<{projectId: string; statusId: string; statusOptions: [{id: string; name: string}]}> {
+    const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       query {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
-            views (first: 1) {
-              nodes {
+            field(name:"Status") {
+              ... on ProjectV2SingleSelectField {
+              id
+              options {
                 id
+                name
               }
             }
           }
@@ -75,7 +88,21 @@ export default class PopulateBoard {
       }
     `)
 
-    return projectIdQuery.organization.projectV2.id
+    return {
+      projectId: projectQuery.organization.projectV2.id,
+      statusId: projectQuery.organization.projectV2.field.id,
+      statusOptions: projectQuery.organization.projectV2.field.options
+    }
+  }
+
+  optionIdByName(options: [{id: string; name: string}], name: string): string | undefined {
+    const option = options.find(o => o.name === name)
+    if (option) {
+      return option.id
+    } else {
+      return undefined
+      // throw new Error(`Status option not found: ${name}`)
+    }
   }
 
   async updateBoardMeta(graphqlWithAuth: typeof graphql, projectId: string, board: Board): Promise<void> {
@@ -96,8 +123,8 @@ export default class PopulateBoard {
     `)
   }
 
-  async addCard(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
-    await graphqlWithAuth(`
+  async addCard(graphqlWithAuth: typeof graphql, projectId: string): Promise<string> {
+    const cardQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       mutation {
         addProjectV2DraftIssue(
           input: {
@@ -112,5 +139,34 @@ export default class PopulateBoard {
         }
       }
     `)
+
+    return cardQuery.addProjectV2DraftIssue.projectItem.id
+  }
+
+  async updateCardStatus(
+    graphqlWithAuth: typeof graphql,
+    projectId: string,
+    cardId: string,
+    statusId: string,
+    valueId: string | undefined
+  ): Promise<void> {
+    if (valueId) {
+      await graphqlWithAuth(`
+        mutation {
+          updateProjectV2ItemFieldValue(input:{
+            projectId: "${projectId}"
+            itemId: "${cardId}"
+            fieldId: "${statusId}"
+            value: {
+              singleSelectOptionId: "${valueId}"
+            }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `)
+    }
   }
 }

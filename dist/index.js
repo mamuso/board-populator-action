@@ -120,12 +120,13 @@ class PopulateBoard {
                 for (const b of boards) {
                     // Making sure that some board default values are set
                     const board = Object.assign(Object.assign({}, this.boardDefault), b);
-                    const projectId = yield this.getProjectId(graphqlWithAuth, board);
+                    const { projectId, statusId, statusOptions } = yield this.getProjectMetadata(graphqlWithAuth, board);
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
                     yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
-                    yield this.addCard(graphqlWithAuth, projectId);
+                    const cardId = yield this.addCard(graphqlWithAuth, projectId);
+                    yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, 'Done'));
                 }
             }
             catch (error) {
@@ -134,24 +135,41 @@ class PopulateBoard {
             }
         });
     }
-    getProjectId(graphqlWithAuth, board) {
+    getProjectMetadata(graphqlWithAuth, board) {
         return __awaiter(this, void 0, void 0, function* () {
-            const projectIdQuery = yield graphqlWithAuth(`
+            const projectQuery = yield graphqlWithAuth(`
       query {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
-            views (first: 1) {
-              nodes {
+            field(name:"Status") {
+              ... on ProjectV2SingleSelectField {
+              id
+              options {
                 id
+                name
               }
             }
           }
         }
       }
     `);
-            return projectIdQuery.organization.projectV2.id;
+            return {
+                projectId: projectQuery.organization.projectV2.id,
+                statusId: projectQuery.organization.projectV2.field.id,
+                statusOptions: projectQuery.organization.projectV2.field.options
+            };
         });
+    }
+    optionIdByName(options, name) {
+        const option = options.find(o => o.name === name);
+        if (option) {
+            return option.id;
+        }
+        else {
+            return undefined;
+            // throw new Error(`Status option not found: ${name}`)
+        }
     }
     updateBoardMeta(graphqlWithAuth, projectId, board) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -174,7 +192,7 @@ class PopulateBoard {
     }
     addCard(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield graphqlWithAuth(`
+            const cardQuery = yield graphqlWithAuth(`
       mutation {
         addProjectV2DraftIssue(
           input: {
@@ -189,6 +207,29 @@ class PopulateBoard {
         }
       }
     `);
+            return cardQuery.addProjectV2DraftIssue.projectItem.id;
+        });
+    }
+    updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, valueId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (valueId) {
+                yield graphqlWithAuth(`
+        mutation {
+          updateProjectV2ItemFieldValue(input:{
+            projectId: "${projectId}"
+            itemId: "${cardId}"
+            fieldId: "${statusId}"
+            value: {
+              singleSelectOptionId: "${valueId}"
+            }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `);
+            }
         });
     }
 }
