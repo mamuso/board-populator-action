@@ -49,10 +49,7 @@ export default class PopulateBoard {
           throw new Error('Project ID not found')
         }
 
-        // eslint-disable-next-line no-console
-        console.log(boardItems)
-
-        // await this.emptyProject(graphqlWithAuth, projectId)
+        await this.emptyProject(graphqlWithAuth, projectId, boardItems)
 
         await this.updateBoardMeta(graphqlWithAuth, projectId, board)
 
@@ -124,29 +121,30 @@ export default class PopulateBoard {
     }
   }
 
-  // async emptyProject(graphqlWithAuth: typeof graphql, board: Board): Promise<void> {
+  async emptyProject(
+    graphqlWithAuth: typeof graphql,
+    projectId: string,
+    boardItems: [{node: {id: string}}]
+  ): Promise<void> {
+    let deleteQuery = ''
 
-  // const deleteQuery = ''
+    for (const item of boardItems) {
+      deleteQuery += `
+        deleteProjectV2Item(input: {
+          projectId: "${projectId}",
+          itemId: "${item.node.id}"
+        }) {
+          clientMutationId
+        }
+    `
+    }
 
-  // for (const item in itemsQuery.node.items.edges) {
-
-  // console.log(item)
-  //   deleteQuery += `
-  //     deleteProjectV2Item(input: {
-  //       projectId: "${projectId}",
-  //       itemId: "${item}"
-  //     }) {
-  //       clientMutationId
-  //     }
-  //   `
-  // }
-
-  // await graphqlWithAuth(`
-  //   mutation {
-  //     ${deleteQuery}
-  //   }
-  // `)
-  // }
+    await graphqlWithAuth(`
+      mutation {
+        ${deleteQuery}
+      }
+    `)
+  }
 
   async updateBoardMeta(graphqlWithAuth: typeof graphql, projectId: string, board: Board): Promise<void> {
     await graphqlWithAuth(`

@@ -124,9 +124,7 @@ class PopulateBoard {
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
-                    // eslint-disable-next-line no-console
-                    console.log(boardItems);
-                    // await this.emptyProject(graphqlWithAuth, projectId)
+                    yield this.emptyProject(graphqlWithAuth, projectId, boardItems);
                     yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
                     const cardId = yield this.addCard(graphqlWithAuth, projectId);
                     yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, 'Todo'));
@@ -183,26 +181,26 @@ class PopulateBoard {
             // throw new Error(`Status option not found: ${name}`)
         }
     }
-    // async emptyProject(graphqlWithAuth: typeof graphql, board: Board): Promise<void> {
-    // const deleteQuery = ''
-    // for (const item in itemsQuery.node.items.edges) {
-    // eslint-disable-next-line no-console
-    // console.log(item)
-    //   deleteQuery += `
-    //     deleteProjectV2Item(input: {
-    //       projectId: "${projectId}",
-    //       itemId: "${item}"
-    //     }) {
-    //       clientMutationId
-    //     }
-    //   `
-    // }
-    // await graphqlWithAuth(`
-    //   mutation {
-    //     ${deleteQuery}
-    //   }
-    // `)
-    // }
+    emptyProject(graphqlWithAuth, projectId, boardItems) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let deleteQuery = '';
+            for (const item of boardItems) {
+                deleteQuery += `
+        deleteProjectV2Item(input: {
+          projectId: "${projectId}",
+          itemId: "${item.node.id}"
+        }) {
+          clientMutationId
+        }
+    `;
+            }
+            yield graphqlWithAuth(`
+      mutation {
+        ${deleteQuery}
+      }
+    `);
+        });
+    }
     updateBoardMeta(graphqlWithAuth, projectId, board) {
         return __awaiter(this, void 0, void 0, function* () {
             yield graphqlWithAuth(`
