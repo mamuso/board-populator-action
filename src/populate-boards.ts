@@ -77,10 +77,11 @@ export default class PopulateBoard {
             id
             field(name:"Status") {
               ... on ProjectV2SingleSelectField {
-              id
-              options {
                 id
-                name
+                options {
+                  id
+                  name
+                }
               }
             }
           }
