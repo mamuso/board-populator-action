@@ -209,6 +209,7 @@ class PopulateBoard {
           ${deleteQuery}
         }
       `);
+                this.timeout(2000);
             }
         });
     }
@@ -229,6 +230,7 @@ class PopulateBoard {
         }
       }
     `);
+            this.timeout(2000);
         });
     }
     addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards) {
@@ -260,6 +262,7 @@ class PopulateBoard {
           ${addQuery}
         }
       `);
+                this.timeout(2000);
                 let addStatus = '';
                 let j = 0;
                 for (const c of cards) {
@@ -284,8 +287,14 @@ class PopulateBoard {
             ${addStatus}
           }
         `);
+                    this.timeout(2000);
                 }
             }
+        });
+    }
+    timeout(ms) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise(resolve => setTimeout(resolve, ms));
         });
     }
 }

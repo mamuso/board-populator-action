@@ -148,6 +148,7 @@ export default class PopulateBoard {
           ${deleteQuery}
         }
       `)
+      this.timeout(2000)
     }
   }
 
@@ -167,6 +168,7 @@ export default class PopulateBoard {
         }
       }
     `)
+    this.timeout(2000)
   }
 
   async addCards(
@@ -205,6 +207,7 @@ export default class PopulateBoard {
           ${addQuery}
         }
       `)
+      this.timeout(2000)
 
       let addStatus = ''
       let j = 0
@@ -233,7 +236,12 @@ export default class PopulateBoard {
             ${addStatus}
           }
         `)
+        this.timeout(2000)
       }
     }
+  }
+
+  async timeout(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 }
