@@ -51,7 +51,7 @@ export default class PopulateBoard {
         }
 
         // eslint-disable-next-line no-console
-        console.log(`# Populating ${board.name}`)
+        console.log(`\n# Populating ${board.name}`)
         // eslint-disable-next-line no-console
         console.log(`---------------------------------------------------------------`)
 
