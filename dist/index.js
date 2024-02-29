@@ -100,7 +100,7 @@ class PopulateBoard {
         Object.assign(this.config, populateConfig);
     }
     run() {
-        var _a;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
@@ -125,6 +125,10 @@ class PopulateBoard {
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
+                    // eslint-disable-next-line no-console
+                    console.log(`# Populating ${board.name}`);
+                    // eslint-disable-next-line no-console
+                    console.log(`---------------------------------------------------------------`);
                     // Empty the project
                     yield this.emptyProject(graphqlWithAuth, projectId, boardItems);
                     // Update the board metadata
@@ -135,7 +139,13 @@ class PopulateBoard {
                         const cardPath = `${this.config.cards_path}/${content}.yml`;
                         const cardContent = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(cardPath, 'utf8')));
                         const cards = JSON.parse(cardContent).cards;
-                        yield this.addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards);
+                        for (const c of cards) {
+                            // eslint-disable-next-line no-console
+                            console.log(c.title);
+                            // Add card and set status
+                            const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
+                            yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));
+                        }
                     }
                 }
             }
@@ -209,7 +219,6 @@ class PopulateBoard {
           ${deleteQuery}
         }
       `);
-                this.timeout(2000);
             }
         });
     }
@@ -230,71 +239,48 @@ class PopulateBoard {
         }
       }
     `);
-            this.timeout(2000);
         });
     }
-    addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards) {
-        var _a;
+    addCard(graphqlWithAuth, projectId, card) {
         return __awaiter(this, void 0, void 0, function* () {
-            let addQuery = '';
-            let i = 0;
-            for (const c of cards) {
-                // eslint-disable-next-line no-console
-                console.log(c.title);
-                addQuery += `
-        addProjectV2DraftIssue${i}: addProjectV2DraftIssue(
+            const cardQuery = yield graphqlWithAuth(`
+      mutation {
+        addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "${c.title}",
-            body: "${c.body}"
+            title: "${card.title}",
+            body: "${card.body}"
           }
         ) {
           projectItem {
             id
           }
         }
-      `;
-                i++;
-            }
-            if (addQuery !== '') {
-                const cardIds = yield graphqlWithAuth(`
-        mutation {
-          ${addQuery}
-        }
-      `);
-                this.timeout(2000);
-                let addStatus = '';
-                let j = 0;
-                for (const c of cards) {
-                    const itemId = cardIds[`addProjectV2DraftIssue${j}`].projectItem.id;
-                    addStatus += `
-          updateProjectV2ItemFieldValue${j}: updateProjectV2ItemFieldValue(input:{
-            projectId: "${projectId}"
-            itemId: "${itemId}"
-            fieldId: "${statusId}"
-            value: {
-              singleSelectOptionId: "${this.optionIdByName(statusOptions, (_a = c.column) !== null && _a !== void 0 ? _a : '')}"
-            }
-          }) {
-            clientMutationId
-          }
-        `;
-                    j++;
-                }
-                if (addStatus !== '') {
-                    yield graphqlWithAuth(`
-          mutation {
-            ${addStatus}
-          }
-        `);
-                    this.timeout(2000);
-                }
-            }
+      }
+    `);
+            return cardQuery.addProjectV2DraftIssue.projectItem.id;
         });
     }
-    timeout(ms) {
+    updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, valueId) {
         return __awaiter(this, void 0, void 0, function* () {
-            return new Promise(resolve => setTimeout(resolve, ms));
+            if (valueId) {
+                yield graphqlWithAuth(`
+        mutation {
+          updateProjectV2ItemFieldValue(input:{
+            projectId: "${projectId}"
+            itemId: "${cardId}"
+            fieldId: "${statusId}"
+            value: {
+              singleSelectOptionId: "${valueId}"
+            }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `);
+            }
         });
     }
 }

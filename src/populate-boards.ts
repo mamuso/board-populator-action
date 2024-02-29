@@ -50,6 +50,11 @@ export default class PopulateBoard {
           throw new Error('Project ID not found')
         }
 
+        // eslint-disable-next-line no-console
+        console.log(`# Populating ${board.name}`)
+        // eslint-disable-next-line no-console
+        console.log(`---------------------------------------------------------------`)
+
         // Empty the project
         await this.emptyProject(graphqlWithAuth, projectId, boardItems)
 
@@ -63,7 +68,20 @@ export default class PopulateBoard {
           const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
           const cards: Card[] = JSON.parse(cardContent).cards
 
-          await this.addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards)
+          for (const c of cards) {
+            // eslint-disable-next-line no-console
+            console.log(c.title)
+
+            // Add card and set status
+            const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+            await this.updateCardStatus(
+              graphqlWithAuth,
+              projectId,
+              cardId,
+              statusId,
+              this.optionIdByName(statusOptions, c.column ?? '')
+            )
+          }
         }
       }
     } catch (error) {
@@ -148,7 +166,6 @@ export default class PopulateBoard {
           ${deleteQuery}
         }
       `)
-      this.timeout(2000)
     }
   }
 
@@ -168,80 +185,52 @@ export default class PopulateBoard {
         }
       }
     `)
-    this.timeout(2000)
   }
 
-  async addCards(
-    graphqlWithAuth: typeof graphql,
-    projectId: string,
-    statusId: string,
-    statusOptions: [{id: string; name: string}],
-    cards: Card[]
-  ): Promise<void> {
-    let addQuery = ''
-    let i = 0
-
-    for (const c of cards) {
-      // eslint-disable-next-line no-console
-      console.log(c.title)
-
-      addQuery += `
-        addProjectV2DraftIssue${i}: addProjectV2DraftIssue(
+  async addCard(graphqlWithAuth: typeof graphql, projectId: string, card: Card): Promise<string> {
+    const cardQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      mutation {
+        addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "${c.title}",
-            body: "${c.body}"
+            title: "${card.title}",
+            body: "${card.body}"
           }
         ) {
           projectItem {
             id
           }
         }
-      `
-      i++
-    }
-
-    if (addQuery !== '') {
-      const cardIds: GraphQlQueryResponseData = await graphqlWithAuth(`
-        mutation {
-          ${addQuery}
-        }
-      `)
-      this.timeout(2000)
-
-      let addStatus = ''
-      let j = 0
-
-      for (const c of cards) {
-        const itemId: string = cardIds[`addProjectV2DraftIssue${j}`].projectItem.id
-
-        addStatus += `
-          updateProjectV2ItemFieldValue${j}: updateProjectV2ItemFieldValue(input:{
-            projectId: "${projectId}"
-            itemId: "${itemId}"
-            fieldId: "${statusId}"
-            value: {
-              singleSelectOptionId: "${this.optionIdByName(statusOptions, c.column ?? '')}"
-            }
-          }) {
-            clientMutationId
-          }
-        `
-        j++
       }
+    `)
 
-      if (addStatus !== '') {
-        await graphqlWithAuth(`
-          mutation {
-            ${addStatus}
-          }
-        `)
-        this.timeout(2000)
-      }
-    }
+    return cardQuery.addProjectV2DraftIssue.projectItem.id
   }
 
-  async timeout(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+  async updateCardStatus(
+    graphqlWithAuth: typeof graphql,
+    projectId: string,
+    cardId: string,
+    statusId: string,
+    valueId: string | undefined
+  ): Promise<void> {
+    if (valueId) {
+      await graphqlWithAuth(`
+        mutation {
+          updateProjectV2ItemFieldValue(input:{
+            projectId: "${projectId}"
+            itemId: "${cardId}"
+            fieldId: "${statusId}"
+            value: {
+              singleSelectOptionId: "${valueId}"
+            }
+          }) {
+            projectV2Item {
+              id
+            }
+          }
+        }
+      `)
+    }
   }
 }
