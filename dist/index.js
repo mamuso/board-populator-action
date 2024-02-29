@@ -277,7 +277,7 @@ class PopulateBoard {
                 // let addStatus = ''
                 let j = 0;
                 for (const c of cards) {
-                    const itemId = cardIds.addProjectV2DraftIssue[j].projectItem.id;
+                    const itemId = cardIds[`addProjectV2DraftIssue${j}`].projectItem.id;
                     // eslint-disable-next-line no-console
                     console.log(c);
                     // eslint-disable-next-line no-console

@@ -228,7 +228,7 @@ export default class PopulateBoard {
       let j = 0
 
       for (const c of cards) {
-        const itemId: string = cardIds.addProjectV2DraftIssue[j].projectItem.id
+        const itemId: string = cardIds[`addProjectV2DraftIssue${j}`].projectItem.id
 
         // eslint-disable-next-line no-console
         console.log(c)
