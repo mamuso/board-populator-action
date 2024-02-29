@@ -63,25 +63,7 @@ export default class PopulateBoard {
           const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
           const cards: Card[] = JSON.parse(cardContent).cards
 
-          // eslint-disable-next-line no-console
-          console.log(statusId, statusOptions)
-
           await this.addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards)
-
-          //   for (const c of cards) {
-          //     // eslint-disable-next-line no-console
-          //     console.log(c.title)
-
-          //     // Add card and set status
-          //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-          //     await this.updateCardStatus(
-          //       graphqlWithAuth,
-          //       projectId,
-          //       cardId,
-          //       statusId,
-          //       this.optionIdByName(statusOptions, c.column ?? '')
-          //     )
-          //   }
         }
       }
     } catch (error) {
@@ -221,9 +203,6 @@ export default class PopulateBoard {
         }
       `)
 
-      // eslint-disable-next-line no-console
-      console.log(cardIds)
-
       let addStatus = ''
       let j = 0
 
@@ -252,53 +231,6 @@ export default class PopulateBoard {
           }
         `)
       }
-    }
-  }
-
-  async addCard(graphqlWithAuth: typeof graphql, projectId: string, card: Card): Promise<string> {
-    const cardQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
-      mutation {
-        addProjectV2DraftIssue(
-          input: {
-            projectId: "${projectId}",
-            title: "${card.title}",
-            body: "${card.body}"
-          }
-        ) {
-          projectItem {
-            id
-          }
-        }
-      }
-    `)
-
-    return cardQuery.addProjectV2DraftIssue.projectItem.id
-  }
-
-  async updateCardStatus(
-    graphqlWithAuth: typeof graphql,
-    projectId: string,
-    cardId: string,
-    statusId: string,
-    valueId: string | undefined
-  ): Promise<void> {
-    if (valueId) {
-      await graphqlWithAuth(`
-        mutation {
-          updateProjectV2ItemFieldValue(input:{
-            projectId: "${projectId}"
-            itemId: "${cardId}"
-            fieldId: "${statusId}"
-            value: {
-              singleSelectOptionId: "${valueId}"
-            }
-          }) {
-            projectV2Item {
-              id
-            }
-          }
-        }
-      `)
     }
   }
 }
