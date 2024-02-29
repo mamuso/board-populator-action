@@ -249,9 +249,10 @@ class PopulateBoard {
     addCards(graphqlWithAuth, projectId, cards) {
         return __awaiter(this, void 0, void 0, function* () {
             let addQuery = '';
+            let i = 0;
             for (const c of cards) {
                 addQuery += `
-        addProjectV2DraftIssue${c.title}: addProjectV2DraftIssue(
+        addProjectV2DraftIssue${i}: addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
             title: "${c.title}",
@@ -262,7 +263,8 @@ class PopulateBoard {
             id
           }
         }
-    `;
+      `;
+                i++;
             }
             if (addQuery !== '') {
                 const qq = yield graphqlWithAuth(`

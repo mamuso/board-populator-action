@@ -189,10 +189,10 @@ export default class PopulateBoard {
 
   async addCards(graphqlWithAuth: typeof graphql, projectId: string, cards: Card[]): Promise<void> {
     let addQuery = ''
-
+    let i = 0
     for (const c of cards) {
       addQuery += `
-        addProjectV2DraftIssue${c.title}: addProjectV2DraftIssue(
+        addProjectV2DraftIssue${i}: addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
             title: "${c.title}",
@@ -203,7 +203,8 @@ export default class PopulateBoard {
             id
           }
         }
-    `
+      `
+      i++
     }
 
     if (addQuery !== '') {
