@@ -247,6 +247,7 @@ class PopulateBoard {
         });
     }
     addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             let addQuery = '';
             let i = 0;
@@ -274,30 +275,31 @@ class PopulateBoard {
       `);
                 // eslint-disable-next-line no-console
                 console.log(cardIds);
-                // let addStatus = ''
+                let addStatus = '';
                 let j = 0;
                 for (const c of cards) {
                     const itemId = cardIds[`addProjectV2DraftIssue${j}`].projectItem.id;
-                    // eslint-disable-next-line no-console
-                    console.log(c);
-                    // eslint-disable-next-line no-console
-                    console.log(itemId);
-                    // addStatus += `
-                    //   updateProjectV2ItemFieldValue${j}: updateProjectV2ItemFieldValue(input:{
-                    //     projectId: "${projectId}"
-                    //     itemId: "${itemId}"
-                    //     fieldId: "${statusId}"
-                    //     value: {
-                    //       singleSelectOptionId: "${this.optionIdByName(statusOptions, c.column ?? '')}"
-                    //     }
-                    //   }) {
-                    //     clientMutationId
-                    //   }
-                    // `
+                    addStatus += `
+          updateProjectV2ItemFieldValue${j}: updateProjectV2ItemFieldValue(input:{
+            projectId: "${projectId}"
+            itemId: "${itemId}"
+            fieldId: "${statusId}"
+            value: {
+              singleSelectOptionId: "${this.optionIdByName(statusOptions, (_a = c.column) !== null && _a !== void 0 ? _a : '')}"
+            }
+          }) {
+            clientMutationId
+          }
+        `;
                     j++;
                 }
-                // eslint-disable-next-line no-console
-                console.log(cardIds);
+                if (addStatus !== '') {
+                    yield graphqlWithAuth(`
+          mutation {
+            ${addStatus}
+          }
+        `);
+                }
             }
         });
     }
