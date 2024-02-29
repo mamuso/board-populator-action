@@ -63,20 +63,25 @@ export default class PopulateBoard {
           const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
           const cards: Card[] = JSON.parse(cardContent).cards
 
-          for (const c of cards) {
-            // eslint-disable-next-line no-console
-            console.log(c.title)
+          // eslint-disable-next-line no-console
+          console.log(statusId, statusOptions)
 
-            // Add card and set status
-            const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-            await this.updateCardStatus(
-              graphqlWithAuth,
-              projectId,
-              cardId,
-              statusId,
-              this.optionIdByName(statusOptions, c.column ?? '')
-            )
-          }
+          await this.addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards)
+
+          //   for (const c of cards) {
+          //     // eslint-disable-next-line no-console
+          //     console.log(c.title)
+
+          //     // Add card and set status
+          //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+          //     await this.updateCardStatus(
+          //       graphqlWithAuth,
+          //       projectId,
+          //       cardId,
+          //       statusId,
+          //       this.optionIdByName(statusOptions, c.column ?? '')
+          //     )
+          //   }
         }
       }
     } catch (error) {
@@ -180,6 +185,74 @@ export default class PopulateBoard {
         }
       }
     `)
+  }
+
+  async addCards(
+    graphqlWithAuth: typeof graphql,
+    projectId: string,
+    statusId: string,
+    statusOptions: [{id: string; name: string}],
+    cards: Card[]
+  ): Promise<void> {
+    let addQuery = ''
+    let i = 0
+
+    for (const c of cards) {
+      addQuery += `
+        addProjectV2DraftIssue${i}: addProjectV2DraftIssue(
+          input: {
+            projectId: "${projectId}",
+            title: "${c.title}",
+            body: "${c.body}"
+          }
+        ) {
+          projectItem {
+            id
+          }
+        }
+      `
+      i++
+    }
+
+    if (addQuery !== '') {
+      const cardIds: GraphQlQueryResponseData = await graphqlWithAuth(`
+        mutation {
+          ${addQuery}
+        }
+      `)
+
+      // eslint-disable-next-line no-console
+      console.log(cardIds)
+
+      let addStatus = ''
+      let j = 0
+
+      for (const c of cards) {
+        const itemId: string = cardIds[`addProjectV2DraftIssue${j}`].projectItem.id
+
+        addStatus += `
+          updateProjectV2ItemFieldValue${j}: updateProjectV2ItemFieldValue(input:{
+            projectId: "${projectId}"
+            itemId: "${itemId}"
+            fieldId: "${statusId}"
+            value: {
+              singleSelectOptionId: "${this.optionIdByName(statusOptions, c.column ?? '')}"
+            }
+          }) {
+            clientMutationId
+          }
+        `
+        j++
+      }
+
+      if (addStatus !== '') {
+        await graphqlWithAuth(`
+          mutation {
+            ${addStatus}
+          }
+        `)
+      }
+    }
   }
 
   async addCard(graphqlWithAuth: typeof graphql, projectId: string, card: Card): Promise<string> {
