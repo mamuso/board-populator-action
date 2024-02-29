@@ -100,7 +100,7 @@ class PopulateBoard {
         Object.assign(this.config, populateConfig);
     }
     run() {
-        var _a, _b;
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
@@ -135,13 +135,22 @@ class PopulateBoard {
                         const cardPath = `${this.config.cards_path}/${content}.yml`;
                         const cardContent = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(cardPath, 'utf8')));
                         const cards = JSON.parse(cardContent).cards;
-                        for (const c of cards) {
-                            // eslint-disable-next-line no-console
-                            console.log(c.title);
-                            // Add card and set status
-                            const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
-                            yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));
-                        }
+                        // eslint-disable-next-line no-console
+                        console.log(statusId, statusOptions);
+                        yield this.addCards(graphqlWithAuth, projectId, cards);
+                        //   for (const c of cards) {
+                        //     // eslint-disable-next-line no-console
+                        //     console.log(c.title)
+                        //     // Add card and set status
+                        //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+                        //     await this.updateCardStatus(
+                        //       graphqlWithAuth,
+                        //       projectId,
+                        //       cardId,
+                        //       statusId,
+                        //       this.optionIdByName(statusOptions, c.column ?? '')
+                        //     )
+                        //   }
                     }
                 }
             }
@@ -235,6 +244,37 @@ class PopulateBoard {
         }
       }
     `);
+        });
+    }
+    addCards(graphqlWithAuth, projectId, cards) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let addQuery = '';
+            for (const c of cards) {
+                addQuery += `
+        addProjectV2DraftIssue${c.title}: addProjectV2DraftIssue(
+          input: {
+            projectId: "${projectId}",
+            title: "${c.title}",
+            body: "${c.body}"
+          }
+        ) {
+          projectItem {
+            id
+          }
+        }
+    `;
+            }
+            if (addQuery !== '') {
+                const qq = yield graphqlWithAuth(`
+        mutation {
+          ${addQuery}
+        }
+      `);
+                // eslint-disable-next-line no-console
+                console.log(qq);
+                // eslint-disable-next-line no-console
+                console.log(qq);
+            }
         });
     }
     addCard(graphqlWithAuth, projectId, card) {
