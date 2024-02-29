@@ -135,22 +135,7 @@ class PopulateBoard {
                         const cardPath = `${this.config.cards_path}/${content}.yml`;
                         const cardContent = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(cardPath, 'utf8')));
                         const cards = JSON.parse(cardContent).cards;
-                        // eslint-disable-next-line no-console
-                        console.log(statusId, statusOptions);
                         yield this.addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards);
-                        //   for (const c of cards) {
-                        //     // eslint-disable-next-line no-console
-                        //     console.log(c.title)
-                        //     // Add card and set status
-                        //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-                        //     await this.updateCardStatus(
-                        //       graphqlWithAuth,
-                        //       projectId,
-                        //       cardId,
-                        //       statusId,
-                        //       this.optionIdByName(statusOptions, c.column ?? '')
-                        //     )
-                        //   }
                     }
                 }
             }
@@ -252,6 +237,8 @@ class PopulateBoard {
             let addQuery = '';
             let i = 0;
             for (const c of cards) {
+                // eslint-disable-next-line no-console
+                console.log(c.title);
                 addQuery += `
         addProjectV2DraftIssue${i}: addProjectV2DraftIssue(
           input: {
@@ -273,8 +260,6 @@ class PopulateBoard {
           ${addQuery}
         }
       `);
-                // eslint-disable-next-line no-console
-                console.log(cardIds);
                 let addStatus = '';
                 let j = 0;
                 for (const c of cards) {
@@ -300,48 +285,6 @@ class PopulateBoard {
           }
         `);
                 }
-            }
-        });
-    }
-    addCard(graphqlWithAuth, projectId, card) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const cardQuery = yield graphqlWithAuth(`
-      mutation {
-        addProjectV2DraftIssue(
-          input: {
-            projectId: "${projectId}",
-            title: "${card.title}",
-            body: "${card.body}"
-          }
-        ) {
-          projectItem {
-            id
-          }
-        }
-      }
-    `);
-            return cardQuery.addProjectV2DraftIssue.projectItem.id;
-        });
-    }
-    updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, valueId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (valueId) {
-                yield graphqlWithAuth(`
-        mutation {
-          updateProjectV2ItemFieldValue(input:{
-            projectId: "${projectId}"
-            itemId: "${cardId}"
-            fieldId: "${statusId}"
-            value: {
-              singleSelectOptionId: "${valueId}"
-            }
-          }) {
-            projectV2Item {
-              id
-            }
-          }
-        }
-      `);
             }
         });
     }
