@@ -66,7 +66,7 @@ export default class PopulateBoard {
           // eslint-disable-next-line no-console
           console.log(statusId, statusOptions)
 
-          await this.addCards(graphqlWithAuth, projectId, cards)
+          await this.addCards(graphqlWithAuth, projectId, statusId, statusOptions, cards)
 
           //   for (const c of cards) {
           //     // eslint-disable-next-line no-console
@@ -187,9 +187,16 @@ export default class PopulateBoard {
     `)
   }
 
-  async addCards(graphqlWithAuth: typeof graphql, projectId: string, cards: Card[]): Promise<void> {
+  async addCards(
+    graphqlWithAuth: typeof graphql,
+    projectId: string,
+    statusId: string,
+    statusOptions: [{id: string; name: string}],
+    cards: Card[]
+  ): Promise<void> {
     let addQuery = ''
     let i = 0
+
     for (const c of cards) {
       addQuery += `
         addProjectV2DraftIssue${i}: addProjectV2DraftIssue(
@@ -208,15 +215,42 @@ export default class PopulateBoard {
     }
 
     if (addQuery !== '') {
-      const qq = await graphqlWithAuth(`
+      const cardIds: GraphQlQueryResponseData = await graphqlWithAuth(`
         mutation {
           ${addQuery}
         }
       `)
+
       // eslint-disable-next-line no-console
-      console.log(qq)
+      console.log(cardIds)
+
+      // let addStatus = ''
+      let j = 0
+
+      for (const c of cards) {
+        const itemId: string = cardIds.addProjectV2DraftIssue[j].projectItem.id
+
+        // eslint-disable-next-line no-console
+        console.log(c)
+        // eslint-disable-next-line no-console
+        console.log(itemId)
+        // addStatus += `
+        //   updateProjectV2ItemFieldValue${j}: updateProjectV2ItemFieldValue(input:{
+        //     projectId: "${projectId}"
+        //     itemId: "${itemId}"
+        //     fieldId: "${statusId}"
+        //     value: {
+        //       singleSelectOptionId: "${this.optionIdByName(statusOptions, c.column ?? '')}"
+        //     }
+        //   }) {
+        //     clientMutationId
+        //   }
+        // `
+        j++
+      }
+
       // eslint-disable-next-line no-console
-      console.log(qq)
+      console.log(cardIds)
     }
   }
 
