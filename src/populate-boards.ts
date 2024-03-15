@@ -103,7 +103,12 @@ export default class PopulateBoard {
         console.log(columns)
 
         if (this.config.use_delimiter && this.config.delimiter) {
-          columns = columns.map(column => column.split(this.config.delimiter ?? '')[1])
+          columns = columns.map(column =>
+            column
+              .split(this.config.delimiter ?? '')
+              .slice(1)
+              .join(this.config.delimiter ?? '')
+          )
         }
 
         // eslint-disable-next-line no-console

@@ -178,7 +178,13 @@ class PopulateBoard {
                     // eslint-disable-next-line no-console
                     console.log(columns);
                     if (this.config.use_delimiter && this.config.delimiter) {
-                        columns = columns.map(column => { var _a; return column.split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')[1]; });
+                        columns = columns.map(column => {
+                            var _a, _b;
+                            return column
+                                .split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')
+                                .slice(1)
+                                .join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
+                        });
                     }
                     // eslint-disable-next-line no-console
                     console.log(columns);
