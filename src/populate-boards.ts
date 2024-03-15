@@ -28,13 +28,10 @@ export default class PopulateBoard {
 
       let auth
 
-      // We don't need to authenticate if we are in development mode
-      if (!this.config.development_mode) {
-        if (this.config.token === null) {
-          // TODO: Implement app authentication
-        } else {
-          auth = createTokenAuth(this.config.token ?? '')
-        }
+      if (this.config.token === null) {
+        // TODO: Implement app authentication
+      } else {
+        auth = createTokenAuth(this.config.token ?? '')
       }
       const graphqlWithAuth = graphql.defaults({
         request: {

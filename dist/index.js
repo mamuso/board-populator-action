@@ -114,14 +114,11 @@ class PopulateBoard {
                 const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
                 const boards = JSON.parse(boardsData).boards;
                 let auth;
-                // We don't need to authenticate if we are in development mode
-                if (!this.config.development_mode) {
-                    if (this.config.token === null) {
-                        // TODO: Implement app authentication
-                    }
-                    else {
-                        auth = (0, auth_token_1.createTokenAuth)((_a = this.config.token) !== null && _a !== void 0 ? _a : '');
-                    }
+                if (this.config.token === null) {
+                    // TODO: Implement app authentication
+                }
+                else {
+                    auth = (0, auth_token_1.createTokenAuth)((_a = this.config.token) !== null && _a !== void 0 ? _a : '');
                 }
                 const graphqlWithAuth = graphql_1.graphql.defaults({
                     request: {
