@@ -8,6 +8,8 @@ export default class DefaultConfig {
       cards_path: 'cards',
       boards: 'boards.yml',
       delimiter: '-',
+      use_delimiter: false,
+      development_mode: false,
       token: null
     }
   }

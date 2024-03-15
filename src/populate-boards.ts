@@ -27,12 +27,15 @@ export default class PopulateBoard {
       const boards: Board[] = JSON.parse(boardsData).boards
 
       let auth
-      if (this.config.token === null) {
-        // TODO: Implement app authentication
-      } else {
-        auth = createTokenAuth(this.config.token ?? '')
-      }
 
+      // We don't need to authenticate if we are in development mode
+      if (!this.config.development_mode) {
+        if (this.config.token === null) {
+          // TODO: Implement app authentication
+        } else {
+          auth = createTokenAuth(this.config.token ?? '')
+        }
+      }
       const graphqlWithAuth = graphql.defaults({
         request: {
           hook: auth?.hook
@@ -57,11 +60,14 @@ export default class PopulateBoard {
         // eslint-disable-next-line no-console
         console.log(`---------------------------------------------------------------`)
 
-        // Empty the project
-        await this.emptyProject(graphqlWithAuth, projectId, boardItems)
+        // We don't need to empty the project if we are in development mode
+        if (!this.config.development_mode) {
+          // Empty the project
+          await this.emptyProject(graphqlWithAuth, projectId, boardItems)
 
-        // Update the board metadata
-        await this.updateBoardMeta(graphqlWithAuth, projectId, board)
+          // Update the board metadata
+          await this.updateBoardMeta(graphqlWithAuth, projectId, board)
+        }
 
         // Create cards and set status
         for (const content of board.content) {
@@ -74,15 +80,18 @@ export default class PopulateBoard {
             // eslint-disable-next-line no-console
             console.log(c.title)
 
-            // Add card and set status
-            const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-            await this.updateCardStatus(
-              graphqlWithAuth,
-              projectId,
-              cardId,
-              statusId,
-              this.optionIdByName(statusOptions, c.column ?? '')
-            )
+            // We don't need to add cards if we are in development mode
+            if (!this.config.development_mode) {
+              // Add card and set status
+              const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+              await this.updateCardStatus(
+                graphqlWithAuth,
+                projectId,
+                cardId,
+                statusId,
+                this.optionIdByName(statusOptions, c.column ?? '')
+              )
+            }
           }
         }
       }

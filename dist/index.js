@@ -14,6 +14,8 @@ class DefaultConfig {
             cards_path: 'cards',
             boards: 'boards.yml',
             delimiter: '-',
+            use_delimiter: false,
+            development_mode: false,
             token: null
         };
     }
@@ -61,6 +63,8 @@ const populateConfig = {
     cards_path: core.getInput('cards_path'),
     boards: core.getInput('boards'),
     delimiter: core.getInput('delimiter'),
+    use_delimiter: core.getBooleanInput('use_delimiter'),
+    development_mode: core.getBooleanInput('development_mode'),
     token: core.getInput('token')
 };
 const populate = new populate_boards_1.default(populateConfig);
@@ -110,11 +114,14 @@ class PopulateBoard {
                 const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
                 const boards = JSON.parse(boardsData).boards;
                 let auth;
-                if (this.config.token === null) {
-                    // TODO: Implement app authentication
-                }
-                else {
-                    auth = (0, auth_token_1.createTokenAuth)((_a = this.config.token) !== null && _a !== void 0 ? _a : '');
+                // We don't need to authenticate if we are in development mode
+                if (!this.config.development_mode) {
+                    if (this.config.token === null) {
+                        // TODO: Implement app authentication
+                    }
+                    else {
+                        auth = (0, auth_token_1.createTokenAuth)((_a = this.config.token) !== null && _a !== void 0 ? _a : '');
+                    }
                 }
                 const graphqlWithAuth = graphql_1.graphql.defaults({
                     request: {
@@ -133,10 +140,13 @@ class PopulateBoard {
                     console.log(`\n# Populating ${board.name}`);
                     // eslint-disable-next-line no-console
                     console.log(`---------------------------------------------------------------`);
-                    // Empty the project
-                    yield this.emptyProject(graphqlWithAuth, projectId, boardItems);
-                    // Update the board metadata
-                    yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
+                    // We don't need to empty the project if we are in development mode
+                    if (!this.config.development_mode) {
+                        // Empty the project
+                        yield this.emptyProject(graphqlWithAuth, projectId, boardItems);
+                        // Update the board metadata
+                        yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
+                    }
                     // Create cards and set status
                     for (const content of board.content) {
                         // Load card content from file
@@ -146,9 +156,12 @@ class PopulateBoard {
                         for (const c of cards) {
                             // eslint-disable-next-line no-console
                             console.log(c.title);
-                            // Add card and set status
-                            const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
-                            yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));
+                            // We don't need to add cards if we are in development mode
+                            if (!this.config.development_mode) {
+                                // Add card and set status
+                                const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
+                                yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));
+                            }
                         }
                     }
                 }
