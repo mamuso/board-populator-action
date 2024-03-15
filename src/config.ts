@@ -5,6 +5,7 @@ export default class DefaultConfig {
   config: Config
   constructor() {
     this.config = {
+      organization: true,
       cards_path: 'cards',
       boards: 'boards.yml',
       delimiter: '-',

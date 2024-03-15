@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 class DefaultConfig {
     constructor() {
         this.config = {
+            organization: true,
             cards_path: 'cards',
             boards: 'boards.yml',
             delimiter: '-',
@@ -60,6 +61,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const populate_boards_1 = __importDefault(__nccwpck_require__(4418));
 const core = __importStar(__nccwpck_require__(2186));
 const populateConfig = {
+    organization: core.getBooleanInput('organization'),
     cards_path: core.getInput('cards_path'),
     boards: core.getInput('boards'),
     delimiter: core.getInput('delimiter'),
@@ -106,13 +108,12 @@ class PopulateBoard {
         Object.assign(this.config, populateConfig);
     }
     run() {
-        var _a, _b;
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                // eslint-disable-next-line no-console
-                console.log(`Running populate-boards action ${this.config.token}`);
                 const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
                 const boards = JSON.parse(boardsData).boards;
+                // Even if we are in development mode, we will authenticate
                 let auth;
                 if (this.config.token === null) {
                     // TODO: Implement app authentication
@@ -144,22 +145,35 @@ class PopulateBoard {
                         // Update the board metadata
                         yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
                     }
+                    const removethisline = [statusId, statusOptions];
+                    removethisline;
                     // Create cards and set status
+                    let columns = [];
                     for (const content of board.content) {
                         // Load card content from file
-                        const cardPath = `${this.config.cards_path}/${content}.yml`;
-                        const cardContent = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(cardPath, 'utf8')));
-                        const cards = JSON.parse(cardContent).cards;
-                        for (const c of cards) {
-                            // eslint-disable-next-line no-console
-                            console.log(c.title);
-                            // We don't need to add cards if we are in development mode
-                            if (!this.config.development_mode) {
-                                // Add card and set status
-                                const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
-                                yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));
-                            }
-                        }
+                        const cardsPath = `${this.config.cards_path}/${content}/`;
+                        const folderNames = fs_1.default.readdirSync(cardsPath);
+                        columns = columns.concat(folderNames);
+                        // eslint-disable-next-line no-console
+                        console.log(columns);
+                        // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
+                        // const cards: Card[] = JSON.parse(cardContent).cards
+                        // for (const c of cards) {
+                        //   // eslint-disable-next-line no-console
+                        //   console.log(c.title)
+                        //   // We don't need to add cards if we are in development mode
+                        //   if (!this.config.development_mode) {
+                        //     // Add card and set status
+                        //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+                        //     await this.updateCardStatus(
+                        //       graphqlWithAuth,
+                        //       projectId,
+                        //       cardId,
+                        //       statusId,
+                        //       this.optionIdByName(statusOptions, c.column ?? '')
+                        //     )
+                        //   }
+                        // }
                     }
                 }
             }

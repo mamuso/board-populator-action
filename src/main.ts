@@ -3,6 +3,7 @@ import * as core from '@actions/core'
 import type {Config} from './types'
 
 const populateConfig: Config = {
+  organization: core.getBooleanInput('organization'),
   cards_path: core.getInput('cards_path'),
   boards: core.getInput('boards'),
   delimiter: core.getInput('delimiter'),
