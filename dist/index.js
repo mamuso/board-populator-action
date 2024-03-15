@@ -154,8 +154,6 @@ class PopulateBoard {
                         const cardsPath = `${this.config.cards_path}/${content}/`;
                         const folderNames = fs_1.default.readdirSync(cardsPath);
                         columns = columns.concat(folderNames);
-                        // eslint-disable-next-line no-console
-                        console.log(columns);
                         // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
                         // const cards: Card[] = JSON.parse(cardContent).cards
                         // for (const c of cards) {
@@ -175,6 +173,20 @@ class PopulateBoard {
                         //   }
                         // }
                     }
+                    // Sort columns
+                    columns.sort();
+                    // eslint-disable-next-line no-console
+                    console.log(columns);
+                    if (this.config.use_delimiter && this.config.delimiter) {
+                        columns = columns.map(column => { var _a; return column.split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')[1]; });
+                    }
+                    // eslint-disable-next-line no-console
+                    console.log(columns);
+                    columns = columns.filter((value, index, self) => {
+                        return self.indexOf(value) === index;
+                    });
+                    // eslint-disable-next-line no-console
+                    console.log(columns);
                 }
             }
             catch (error) {

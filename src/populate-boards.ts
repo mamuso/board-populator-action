@@ -75,9 +75,6 @@ export default class PopulateBoard {
           const folderNames = fs.readdirSync(cardsPath)
           columns = columns.concat(folderNames)
 
-          // eslint-disable-next-line no-console
-          console.log(columns)
-
           // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
           // const cards: Card[] = JSON.parse(cardContent).cards
 
@@ -99,6 +96,25 @@ export default class PopulateBoard {
           //   }
           // }
         }
+        // Sort columns
+        columns.sort()
+
+        // eslint-disable-next-line no-console
+        console.log(columns)
+
+        if (this.config.use_delimiter && this.config.delimiter) {
+          columns = columns.map(column => column.split(this.config.delimiter ?? '')[1])
+        }
+
+        // eslint-disable-next-line no-console
+        console.log(columns)
+
+        columns = columns.filter((value, index, self) => {
+          return self.indexOf(value) === index
+        })
+
+        // eslint-disable-next-line no-console
+        console.log(columns)
       }
     } catch (error) {
       // eslint-disable-next-line no-console
