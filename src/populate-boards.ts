@@ -70,7 +70,7 @@ export default class PopulateBoard {
         // Create cards and set status
         let columns: string[] = []
         for (const content of board.content) {
-          // Load card content from file
+          // Columns
           const cardsPath = `${this.config.cards_path}/${content}/`
           const folderNames = fs.readdirSync(cardsPath)
           columns = columns.concat(folderNames)
@@ -96,27 +96,9 @@ export default class PopulateBoard {
           //   }
           // }
         }
+
         // Sort columns
-        columns.sort()
-
-        // eslint-disable-next-line no-console
-        console.log(columns)
-
-        if (this.config.use_delimiter && this.config.delimiter) {
-          columns = columns.map(column =>
-            column
-              .split(this.config.delimiter ?? '')
-              .slice(1)
-              .join(this.config.delimiter ?? '')
-          )
-        }
-
-        // eslint-disable-next-line no-console
-        console.log(columns)
-
-        columns = columns.filter((value, index, self) => {
-          return self.indexOf(value) === index
-        })
+        columns = await this.sortColumns(columns)
 
         // eslint-disable-next-line no-console
         console.log(columns)
@@ -125,6 +107,28 @@ export default class PopulateBoard {
       // eslint-disable-next-line no-console
       console.error(error)
     }
+  }
+
+  async sortColumns(columns: string[]): Promise<string[]> {
+    // Sort columns
+    columns.sort()
+
+    // Sanitize the column names if we use a delimiter
+    if (this.config.use_delimiter && this.config.delimiter) {
+      columns = columns.map(column =>
+        column
+          .split(this.config.delimiter ?? '')
+          .slice(1)
+          .join(this.config.delimiter ?? '')
+      )
+    }
+
+    // Compact the array
+    columns = columns.filter((value, index, self) => {
+      return self.indexOf(value) === index
+    })
+
+    return columns
   }
 
   async getProjectMetadata(

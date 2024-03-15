@@ -150,7 +150,7 @@ class PopulateBoard {
                     // Create cards and set status
                     let columns = [];
                     for (const content of board.content) {
-                        // Load card content from file
+                        // Columns
                         const cardsPath = `${this.config.cards_path}/${content}/`;
                         const folderNames = fs_1.default.readdirSync(cardsPath);
                         columns = columns.concat(folderNames);
@@ -174,23 +174,7 @@ class PopulateBoard {
                         // }
                     }
                     // Sort columns
-                    columns.sort();
-                    // eslint-disable-next-line no-console
-                    console.log(columns);
-                    if (this.config.use_delimiter && this.config.delimiter) {
-                        columns = columns.map(column => {
-                            var _a, _b;
-                            return column
-                                .split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')
-                                .slice(1)
-                                .join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
-                        });
-                    }
-                    // eslint-disable-next-line no-console
-                    console.log(columns);
-                    columns = columns.filter((value, index, self) => {
-                        return self.indexOf(value) === index;
-                    });
+                    columns = yield this.sortColumns(columns);
                     // eslint-disable-next-line no-console
                     console.log(columns);
                 }
@@ -199,6 +183,27 @@ class PopulateBoard {
                 // eslint-disable-next-line no-console
                 console.error(error);
             }
+        });
+    }
+    sortColumns(columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Sort columns
+            columns.sort();
+            // Sanitize the column names if we use a delimiter
+            if (this.config.use_delimiter && this.config.delimiter) {
+                columns = columns.map(column => {
+                    var _a, _b;
+                    return column
+                        .split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')
+                        .slice(1)
+                        .join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
+                });
+            }
+            // Compact the array
+            columns = columns.filter((value, index, self) => {
+                return self.indexOf(value) === index;
+            });
+            return columns;
         });
     }
     getProjectMetadata(graphqlWithAuth, board) {
