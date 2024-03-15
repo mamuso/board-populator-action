@@ -11,6 +11,7 @@ export default class DefaultConfig {
       delimiter: '-',
       use_delimiter: false,
       development_mode: false,
+      column_name: 'Column',
       token: null
     }
   }

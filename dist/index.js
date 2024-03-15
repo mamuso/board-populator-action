@@ -17,6 +17,7 @@ class DefaultConfig {
             delimiter: '-',
             use_delimiter: false,
             development_mode: false,
+            column_name: 'Column',
             token: null
         };
     }
@@ -67,6 +68,7 @@ const populateConfig = {
     delimiter: core.getInput('delimiter'),
     use_delimiter: core.getBooleanInput('use_delimiter'),
     development_mode: core.getBooleanInput('development_mode'),
+    column_name: core.getInput('column_name'),
     token: core.getInput('token')
 };
 const populate = new populate_boards_1.default(populateConfig);

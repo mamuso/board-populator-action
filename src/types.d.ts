@@ -5,6 +5,7 @@ export interface Config {
   delimiter?: string
   use_delimiter: boolean
   development_mode: boolean
+  column_name: string
   token?: string | null
 }
 

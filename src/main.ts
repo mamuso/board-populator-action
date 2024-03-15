@@ -9,6 +9,7 @@ const populateConfig: Config = {
   delimiter: core.getInput('delimiter'),
   use_delimiter: core.getBooleanInput('use_delimiter'),
   development_mode: core.getBooleanInput('development_mode'),
+  column_name: core.getInput('column_name'),
   token: core.getInput('token')
 }
 
