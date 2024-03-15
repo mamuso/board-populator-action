@@ -7,6 +7,7 @@ export default class DefaultConfig {
     this.config = {
       cards_path: 'cards',
       boards: 'boards.yml',
+      delimiter: '-',
       token: null
     }
   }

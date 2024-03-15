@@ -1,6 +1,6 @@
 import * as process from 'process'
 import PopulateBoard from '../src/populate-boards'
-import type {config} from '../src/types'
+import type {Config} from '../src/types'
 
 // Constants
 const token: string | undefined = process.env.GITHUB_TOKEN

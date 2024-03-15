@@ -13,6 +13,7 @@ class DefaultConfig {
         this.config = {
             cards_path: 'cards',
             boards: 'boards.yml',
+            delimiter: '-',
             token: null
         };
     }
@@ -59,6 +60,7 @@ const core = __importStar(__nccwpck_require__(2186));
 const populateConfig = {
     cards_path: core.getInput('cards_path'),
     boards: core.getInput('boards'),
+    delimiter: core.getInput('delimiter'),
     token: core.getInput('token')
 };
 const populate = new populate_boards_1.default(populateConfig);

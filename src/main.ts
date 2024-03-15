@@ -5,6 +5,7 @@ import type {Config} from './types'
 const populateConfig: Config = {
   cards_path: core.getInput('cards_path'),
   boards: core.getInput('boards'),
+  delimiter: core.getInput('delimiter'),
   token: core.getInput('token')
 }
 

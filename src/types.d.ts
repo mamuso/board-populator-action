@@ -1,6 +1,7 @@
 export interface Config {
   cards_path?: string
   boards?: string
+  delimiter?: string
   token?: string | null
 }
 
