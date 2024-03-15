@@ -22,7 +22,7 @@ export default class PopulateBoard {
   async run(): Promise<void> {
     try {
       // eslint-disable-next-line no-console
-      console.log('Running populate-boards action')
+      console.log(`Running populate-boards action ${this.config.token}`)
       const boardsData: string = JSON.stringify(yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')))
       const boards: Board[] = JSON.parse(boardsData).boards
 
