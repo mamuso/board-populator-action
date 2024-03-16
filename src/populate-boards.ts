@@ -45,7 +45,7 @@ export default class PopulateBoard {
         }
 
         // Get the project metadata
-        const {projectId, statusId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
+        const {projectId, columnId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
@@ -64,7 +64,7 @@ export default class PopulateBoard {
           await this.updateBoardMeta(graphqlWithAuth, projectId, board)
         }
 
-        const removethisline = [statusId, statusOptions]
+        const removethisline = [columnId, statusOptions]
         removethisline
 
         // Create cards and set status
@@ -90,7 +90,7 @@ export default class PopulateBoard {
           //       graphqlWithAuth,
           //       projectId,
           //       cardId,
-          //       statusId,
+          //       columnId,
           //       this.optionIdByName(statusOptions, c.column ?? '')
           //     )
           //   }
@@ -99,6 +99,11 @@ export default class PopulateBoard {
 
         // Sort columns
         columns = await this.sortColumns(columns)
+
+        // Create columns
+        if (!this.config.development_mode) {
+          await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
+        }
 
         // eslint-disable-next-line no-console
         console.log(columns)
@@ -131,12 +136,59 @@ export default class PopulateBoard {
     return columns
   }
 
+  async createColumn(
+    graphqlWithAuth: typeof graphql,
+    projectId: string,
+    columnId: string,
+    columns: string[]
+  ): Promise<string> {
+    // Delete columns
+    if (columnId) {
+      await graphqlWithAuth(`
+        mutation {
+          deleteProjectV2Field(input: {
+            fieldId: "${columnId}"
+          }) {
+            clientMutationId
+          }
+        }
+      `)
+    }
+    // Create columns
+    const createColumnQuery: string[] = []
+    for (const column of columns) {
+      createColumnQuery.push(`{name: "${column}", color: GRAY}`)
+    }
+    const fieldQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      mutation {
+        createProjectV2Field(
+          input: {
+            projectId: "${projectId}", 
+            dataType: SINGLE_SELECT,
+            name: "${this.config.column_name}", 
+            singleSelectOptions: [${createColumnQuery.join(', ')}]
+          }
+        ){
+          projectV2Field {
+            ... on ProjectV2Field {
+              id
+            }
+          }
+        }
+      }
+    `)
+
+    // eslint-disable-next-line no-console
+    console.log(fieldQuery)
+    return fieldQuery.createProjectV2Field.projectV2Field.id
+  }
+
   async getProjectMetadata(
     graphqlWithAuth: typeof graphql,
     board: Board
   ): Promise<{
     projectId: string
-    statusId: string
+    columnId: string
     statusOptions: [{id: string; name: string}]
     boardItems: [{node: {id: string}}]
   }> {
@@ -145,7 +197,7 @@ export default class PopulateBoard {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
-            field(name:"Status") {
+            field(name:"${this.config.column_name}") {
               ... on ProjectV2SingleSelectField {
                 id
                 options {
@@ -168,7 +220,7 @@ export default class PopulateBoard {
 
     return {
       projectId: projectQuery.organization.projectV2.id,
-      statusId: projectQuery.organization.projectV2.field.id,
+      columnId: projectQuery.organization.projectV2.field.id,
       statusOptions: projectQuery.organization.projectV2.field.options,
       boardItems: projectQuery.organization.projectV2.items.edges
     }
@@ -252,7 +304,7 @@ export default class PopulateBoard {
     graphqlWithAuth: typeof graphql,
     projectId: string,
     cardId: string,
-    statusId: string,
+    columnId: string,
     valueId: string | undefined
   ): Promise<void> {
     if (valueId) {
@@ -261,7 +313,7 @@ export default class PopulateBoard {
           updateProjectV2ItemFieldValue(input:{
             projectId: "${projectId}"
             itemId: "${cardId}"
-            fieldId: "${statusId}"
+            fieldId: "${columnId}"
             value: {
               singleSelectOptionId: "${valueId}"
             }

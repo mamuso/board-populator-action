@@ -132,7 +132,7 @@ class PopulateBoard {
                     // Making sure that some board default values are set
                     const board = Object.assign(Object.assign({}, this.boardDefault), b);
                     // Get the project metadata
-                    const { projectId, statusId, statusOptions, boardItems } = yield this.getProjectMetadata(graphqlWithAuth, board);
+                    const { projectId, columnId, statusOptions, boardItems } = yield this.getProjectMetadata(graphqlWithAuth, board);
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
@@ -147,7 +147,7 @@ class PopulateBoard {
                         // Update the board metadata
                         yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
                     }
-                    const removethisline = [statusId, statusOptions];
+                    const removethisline = [columnId, statusOptions];
                     removethisline;
                     // Create cards and set status
                     let columns = [];
@@ -169,7 +169,7 @@ class PopulateBoard {
                         //       graphqlWithAuth,
                         //       projectId,
                         //       cardId,
-                        //       statusId,
+                        //       columnId,
                         //       this.optionIdByName(statusOptions, c.column ?? '')
                         //     )
                         //   }
@@ -177,6 +177,10 @@ class PopulateBoard {
                     }
                     // Sort columns
                     columns = yield this.sortColumns(columns);
+                    // Create columns
+                    if (!this.config.development_mode) {
+                        yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
+                    }
                     // eslint-disable-next-line no-console
                     console.log(columns);
                 }
@@ -208,6 +212,48 @@ class PopulateBoard {
             return columns;
         });
     }
+    createColumn(graphqlWithAuth, projectId, columnId, columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Delete columns
+            if (columnId) {
+                yield graphqlWithAuth(`
+        mutation {
+          deleteProjectV2Field(input: {
+            fieldId: "${columnId}"
+          }) {
+            clientMutationId
+          }
+        }
+      `);
+            }
+            // Create columns
+            const createColumnQuery = [];
+            for (const column of columns) {
+                createColumnQuery.push(`{name: "${column}", color: GRAY}`);
+            }
+            const fieldQuery = yield graphqlWithAuth(`
+      mutation {
+        createProjectV2Field(
+          input: {
+            projectId: "${projectId}", 
+            dataType: SINGLE_SELECT,
+            name: "${this.config.column_name}", 
+            singleSelectOptions: [${createColumnQuery.join(', ')}]
+          }
+        ){
+          projectV2Field {
+            ... on ProjectV2Field {
+              id
+            }
+          }
+        }
+      }
+    `);
+            // eslint-disable-next-line no-console
+            console.log(fieldQuery);
+            return fieldQuery.createProjectV2Field.projectV2Field.id;
+        });
+    }
     getProjectMetadata(graphqlWithAuth, board) {
         return __awaiter(this, void 0, void 0, function* () {
             const projectQuery = yield graphqlWithAuth(`
@@ -215,7 +261,7 @@ class PopulateBoard {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
-            field(name:"Status") {
+            field(name:"${this.config.column_name}") {
               ... on ProjectV2SingleSelectField {
                 id
                 options {
@@ -237,7 +283,7 @@ class PopulateBoard {
     `);
             return {
                 projectId: projectQuery.organization.projectV2.id,
-                statusId: projectQuery.organization.projectV2.field.id,
+                columnId: projectQuery.organization.projectV2.field.id,
                 statusOptions: projectQuery.organization.projectV2.field.options,
                 boardItems: projectQuery.organization.projectV2.items.edges
             };
@@ -314,7 +360,7 @@ class PopulateBoard {
             return cardQuery.addProjectV2DraftIssue.projectItem.id;
         });
     }
-    updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, valueId) {
+    updateCardStatus(graphqlWithAuth, projectId, cardId, columnId, valueId) {
         return __awaiter(this, void 0, void 0, function* () {
             if (valueId) {
                 yield graphqlWithAuth(`
@@ -322,7 +368,7 @@ class PopulateBoard {
           updateProjectV2ItemFieldValue(input:{
             projectId: "${projectId}"
             itemId: "${cardId}"
-            fieldId: "${statusId}"
+            fieldId: "${columnId}"
             value: {
               singleSelectOptionId: "${valueId}"
             }
