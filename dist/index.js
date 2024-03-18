@@ -305,7 +305,7 @@ class PopulateBoard {
             // Create columns
             const createColumnQuery = [];
             for (const column of columns) {
-                createColumnQuery.push(`{name: "${column}", description: "${column}", color: GRAY}`);
+                createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`);
             }
             const fieldQuery = yield graphqlWithAuth(`
       mutation {

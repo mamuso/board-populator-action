@@ -237,7 +237,7 @@ export default class PopulateBoard {
     // Create columns
     const createColumnQuery: string[] = []
     for (const column of columns) {
-      createColumnQuery.push(`{name: "${column}", description: "${column}", color: GRAY}`)
+      createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`)
     }
     const fieldQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       mutation {
