@@ -24,7 +24,6 @@ export default class PopulateBoard {
       const boardsData: string = JSON.stringify(yaml.load(fs.readFileSync(`${this.config.boards}`, 'utf8')))
       const boards: Board[] = JSON.parse(boardsData).boards
 
-      // Even if we are in development mode, we will authenticate
       let auth
       if (this.config.token === null) {
         // TODO: Implement app authentication
@@ -38,14 +37,16 @@ export default class PopulateBoard {
       })
 
       for (const b of boards) {
-        // Making sure that some board default values are set
+        // Ensuring board default values are set
         const board: Board = {
           ...this.boardDefault,
           ...b
         }
 
         // Get the project metadata
-        const {projectId, columnId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
+        const projectId = await this.getProjectId(graphqlWithAuth, board)
+        const {columnId, columnOptions} = await this.getColumnOptions(graphqlWithAuth, projectId)
+        const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
@@ -64,7 +65,7 @@ export default class PopulateBoard {
           await this.updateBoardMeta(graphqlWithAuth, projectId, board)
         }
 
-        const removethisline = [columnId, statusOptions]
+        const removethisline = [columnId, columnOptions]
         removethisline
 
         // Create cards and set status
@@ -91,7 +92,7 @@ export default class PopulateBoard {
           //       projectId,
           //       cardId,
           //       columnId,
-          //       this.optionIdByName(statusOptions, c.column ?? '')
+          //       this.optionIdByName(columnOptions, c.column ?? '')
           //     )
           //   }
           // }
@@ -112,6 +113,78 @@ export default class PopulateBoard {
       // eslint-disable-next-line no-console
       console.error(error)
     }
+  }
+
+  async getProjectId(graphqlWithAuth: typeof graphql, board: Board): Promise<string> {
+    const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        organization(login:"${board.owner}"){
+          projectV2(number: ${board.board_id}) {
+            id
+          }
+        }
+      }
+    `)
+
+    return projectQuery.organization.projectV2.id
+  }
+
+  async getColumnOptions(
+    graphqlWithAuth: typeof graphql,
+    projectId: string
+  ): Promise<{
+    columnId: string
+    columnOptions: [{id: string; name: string}]
+  }> {
+    try {
+      const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+          field(name: "Card Columns") {
+            ... on ProjectV2SingleSelectField {
+              id
+              name
+              options {
+                id
+                name
+              }
+            }
+          }          
+        }
+      }
+    `)
+
+      return {
+        columnId: projectQuery.organization.projectV2.field.id,
+        columnOptions: projectQuery.organization.projectV2.field.options
+      }
+    } catch (error) {
+      return {
+        columnId: '',
+        columnOptions: [{id: '', name: ''}]
+      }
+    }
+  }
+
+  async getBoardItems(graphqlWithAuth: typeof graphql, projectId: string): Promise<[{node: {id: string}}]> {
+    const projectItemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+            items(first: 100) {
+              edges {
+                node {
+                  id
+                }
+              }
+            }
+          }
+        }
+      }
+    `)
+
+    return projectItemsQuery.organization.projectV2.items.edges
   }
 
   async sortColumns(columns: string[]): Promise<string[]> {
@@ -181,49 +254,6 @@ export default class PopulateBoard {
     // eslint-disable-next-line no-console
     console.log(fieldQuery)
     return fieldQuery.createProjectV2Field.projectV2Field.id
-  }
-
-  async getProjectMetadata(
-    graphqlWithAuth: typeof graphql,
-    board: Board
-  ): Promise<{
-    projectId: string
-    columnId: string
-    statusOptions: [{id: string; name: string}]
-    boardItems: [{node: {id: string}}]
-  }> {
-    const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
-      query {
-        organization(login:"${board.owner}"){
-          projectV2(number: ${board.board_id}) {
-            id
-            field(name:"${this.config.column_name}") {
-              ... on ProjectV2SingleSelectField {
-                id
-                options {
-                  id
-                  name
-                }
-              }
-            }
-            items(first: 100) {
-              edges {
-                node {
-                  id
-                }
-              }
-            }
-          }
-        }
-      }
-    `)
-
-    return {
-      projectId: projectQuery.organization.projectV2.id,
-      columnId: projectQuery.organization.projectV2.field.id,
-      statusOptions: projectQuery.organization.projectV2.field.options,
-      boardItems: projectQuery.organization.projectV2.items.edges
-    }
   }
 
   optionIdByName(options: [{id: string; name: string}], name: string): string | undefined {
