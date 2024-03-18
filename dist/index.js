@@ -132,7 +132,11 @@ class PopulateBoard {
                     const board = Object.assign(Object.assign({}, this.boardDefault), b);
                     // Get the project metadata
                     const projectId = yield this.getProjectId(graphqlWithAuth, board);
+                    // eslint-disable-next-line no-console
+                    console.log(`\n# projectId ${projectId}`);
                     const { columnId, columnOptions } = yield this.getColumnOptions(graphqlWithAuth, projectId);
+                    // eslint-disable-next-line no-console
+                    console.log(`\n# columnId, columnOptions ${columnId} ${columnOptions}`);
                     const boardItems = yield this.getBoardItems(graphqlWithAuth, projectId);
                     if (!projectId) {
                         throw new Error('Project ID not found');

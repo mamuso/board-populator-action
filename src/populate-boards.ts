@@ -45,7 +45,11 @@ export default class PopulateBoard {
 
         // Get the project metadata
         const projectId = await this.getProjectId(graphqlWithAuth, board)
+        // eslint-disable-next-line no-console
+        console.log(`\n# projectId ${projectId}`)
         const {columnId, columnOptions} = await this.getColumnOptions(graphqlWithAuth, projectId)
+        // eslint-disable-next-line no-console
+        console.log(`\n# columnId, columnOptions ${columnId} ${columnOptions}`)
         const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
         if (!projectId) {
           throw new Error('Project ID not found')
