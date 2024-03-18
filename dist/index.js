@@ -211,8 +211,8 @@ class PopulateBoard {
     }
     getColumnOptions(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const projectQuery = yield graphqlWithAuth(`
+            // try {
+            const projectQuery = yield graphqlWithAuth(`
       query {
         node(id: "${projectId}") {
           ... on ProjectV2 {
@@ -229,21 +229,20 @@ class PopulateBoard {
         }
       }
     `);
-                // eslint-disable-next-line no-console
-                console.log(`\n# columnId ${projectQuery.organization.projectV2.field.id}`);
-                // eslint-disable-next-line no-console
-                console.log(`\n# columnId ${projectQuery.organization.projectV2.field.options}`);
-                return {
-                    columnId: projectQuery.organization.projectV2.field.id,
-                    columnOptions: projectQuery.organization.projectV2.field.options
-                };
-            }
-            catch (error) {
-                return {
-                    columnId: '',
-                    columnOptions: [{ id: '', name: '' }]
-                };
-            }
+            // eslint-disable-next-line no-console
+            console.log(`\n# columnId ${projectQuery.organization.projectV2.field.id}`);
+            // eslint-disable-next-line no-console
+            console.log(`\n# columnId ${projectQuery.organization.projectV2.field.options}`);
+            return {
+                columnId: projectQuery.organization.projectV2.field.id,
+                columnOptions: projectQuery.organization.projectV2.field.options
+            };
+            // } catch (error) {
+            //   return {
+            //     columnId: '',
+            //     columnOptions: [{id: '', name: ''}]
+            //   }
+            // }
         });
     }
     getBoardItems(graphqlWithAuth, projectId) {

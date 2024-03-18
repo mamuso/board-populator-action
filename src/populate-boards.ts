@@ -139,8 +139,8 @@ export default class PopulateBoard {
     columnId: string
     columnOptions: [{id: string; name: string}]
   }> {
-    try {
-      const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+    // try {
+    const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       query {
         node(id: "${projectId}") {
           ... on ProjectV2 {
@@ -158,21 +158,21 @@ export default class PopulateBoard {
       }
     `)
 
-      // eslint-disable-next-line no-console
-      console.log(`\n# columnId ${projectQuery.organization.projectV2.field.id}`)
-      // eslint-disable-next-line no-console
-      console.log(`\n# columnId ${projectQuery.organization.projectV2.field.options}`)
+    // eslint-disable-next-line no-console
+    console.log(`\n# columnId ${projectQuery.organization.projectV2.field.id}`)
+    // eslint-disable-next-line no-console
+    console.log(`\n# columnId ${projectQuery.organization.projectV2.field.options}`)
 
-      return {
-        columnId: projectQuery.organization.projectV2.field.id,
-        columnOptions: projectQuery.organization.projectV2.field.options
-      }
-    } catch (error) {
-      return {
-        columnId: '',
-        columnOptions: [{id: '', name: ''}]
-      }
+    return {
+      columnId: projectQuery.organization.projectV2.field.id,
+      columnOptions: projectQuery.organization.projectV2.field.options
     }
+    // } catch (error) {
+    //   return {
+    //     columnId: '',
+    //     columnOptions: [{id: '', name: ''}]
+    //   }
+    // }
   }
 
   async getBoardItems(graphqlWithAuth: typeof graphql, projectId: string): Promise<[{node: {id: string}}] | []> {
