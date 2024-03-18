@@ -223,6 +223,10 @@ export default class PopulateBoard {
     columns: string[]
   ): Promise<string> {
     // Delete columns
+    // eslint-disable-next-line no-console
+    console.log('Is it set?')
+    // eslint-disable-next-line no-console
+    console.log(columnId)
     if (columnId) {
       // eslint-disable-next-line no-console
       console.log('Deleting column')

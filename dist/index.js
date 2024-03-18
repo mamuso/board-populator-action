@@ -291,6 +291,10 @@ class PopulateBoard {
     createColumn(graphqlWithAuth, projectId, columnId, columns) {
         return __awaiter(this, void 0, void 0, function* () {
             // Delete columns
+            // eslint-disable-next-line no-console
+            console.log('Is it set?');
+            // eslint-disable-next-line no-console
+            console.log(columnId);
             if (columnId) {
                 // eslint-disable-next-line no-console
                 console.log('Deleting column');
