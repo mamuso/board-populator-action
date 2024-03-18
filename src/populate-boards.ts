@@ -224,6 +224,10 @@ export default class PopulateBoard {
   ): Promise<string> {
     // Delete columns
     if (columnId) {
+      // eslint-disable-next-line no-console
+      console.log('Deleting column')
+      // eslint-disable-next-line no-console
+      console.log(columnId)
       await graphqlWithAuth(`
         mutation {
           deleteProjectV2Field(input: {

@@ -292,6 +292,10 @@ class PopulateBoard {
         return __awaiter(this, void 0, void 0, function* () {
             // Delete columns
             if (columnId) {
+                // eslint-disable-next-line no-console
+                console.log('Deleting column');
+                // eslint-disable-next-line no-console
+                console.log(columnId);
                 yield graphqlWithAuth(`
         mutation {
           deleteProjectV2Field(input: {
