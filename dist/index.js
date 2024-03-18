@@ -216,7 +216,7 @@ class PopulateBoard {
       query {
         node(id: "${projectId}") {
           ... on ProjectV2 {
-          field(name: "Card Columns") {
+          field(name: "${this.config.column_name}") {
             ... on ProjectV2SingleSelectField {
               id
               name
@@ -305,7 +305,7 @@ class PopulateBoard {
             // Create columns
             const createColumnQuery = [];
             for (const column of columns) {
-                createColumnQuery.push(`{name: "${column}", color: GRAY}`);
+                createColumnQuery.push(`{name: "${column}", description: "${column}", color: GRAY}`);
             }
             const fieldQuery = yield graphqlWithAuth(`
       mutation {
