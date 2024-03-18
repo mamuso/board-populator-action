@@ -50,7 +50,6 @@ export default class PopulateBoard {
         const {columnId, columnOptions} = await this.getColumnOptions(graphqlWithAuth, projectId)
         // eslint-disable-next-line no-console
         console.log(`\n# columnId, columnOptions ${columnId} ${columnOptions}`)
-        const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
@@ -63,7 +62,7 @@ export default class PopulateBoard {
         // We don't need to empty the project if we are in development mode
         if (!this.config.development_mode) {
           // Empty the project
-          await this.emptyProject(graphqlWithAuth, projectId, boardItems)
+          await this.emptyProject(graphqlWithAuth, projectId)
 
           // Update the board metadata
           await this.updateBoardMeta(graphqlWithAuth, projectId, board)
@@ -171,8 +170,9 @@ export default class PopulateBoard {
     }
   }
 
-  async getBoardItems(graphqlWithAuth: typeof graphql, projectId: string): Promise<[{node: {id: string}}]> {
-    const projectItemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+  async getBoardItems(graphqlWithAuth: typeof graphql, projectId: string): Promise<[{node: {id: string}}] | []> {
+    try {
+      const projectItemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       query {
         node(id: "${projectId}") {
           ... on ProjectV2 {
@@ -188,7 +188,10 @@ export default class PopulateBoard {
       }
     `)
 
-    return projectItemsQuery.organization.projectV2.items.edges
+      return projectItemsQuery.organization.projectV2.items.edges
+    } catch (error) {
+      return []
+    }
   }
 
   async sortColumns(columns: string[]): Promise<string[]> {
@@ -270,15 +273,19 @@ export default class PopulateBoard {
     }
   }
 
-  async emptyProject(
-    graphqlWithAuth: typeof graphql,
-    projectId: string,
-    boardItems: [{node: {id: string}}]
-  ): Promise<void> {
+  async emptyProject(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
     let deleteQuery = ''
 
-    for (const i in boardItems) {
-      deleteQuery += `
+    let isEmpty = false
+    while (!isEmpty) {
+      const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
+      if (boardItems.length === 0) {
+        isEmpty = true
+        break
+      }
+
+      for (const i in boardItems) {
+        deleteQuery += `
         deleteproject${i}: deleteProjectV2Item(input: {
           projectId: "${projectId}",
           itemId: "${boardItems[i].node.id}"
@@ -286,6 +293,7 @@ export default class PopulateBoard {
           clientMutationId
         }
     `
+      }
     }
     if (deleteQuery !== '') {
       await graphqlWithAuth(`
