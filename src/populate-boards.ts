@@ -158,6 +158,11 @@ export default class PopulateBoard {
       }
     `)
 
+      // eslint-disable-next-line no-console
+      console.log(`\n# columnId ${projectQuery.organization.projectV2.field.id}`)
+      // eslint-disable-next-line no-console
+      console.log(`\n# columnId ${projectQuery.organization.projectV2.field.options}`)
+
       return {
         columnId: projectQuery.organization.projectV2.field.id,
         columnOptions: projectQuery.organization.projectV2.field.options
