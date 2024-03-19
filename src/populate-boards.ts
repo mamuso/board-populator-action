@@ -104,11 +104,18 @@ export default class PopulateBoard {
         // Sort columns
         columns = await this.sortColumns(columns)
 
+        // eslint-disable-next-line no-console
+        console.log('Before')
+        // eslint-disable-next-line no-console
+        console.log(columnId)
+
         // Create columns
         if (!this.config.development_mode) {
           await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
-          Object.assign({columnId, columnOptions}, await this.getColumnOptions(graphqlWithAuth, projectId))
+          await Object.assign({columnId, columnOptions}, this.getColumnOptions(graphqlWithAuth, projectId))
 
+          // eslint-disable-next-line no-console
+          console.log('After')
           // eslint-disable-next-line no-console
           console.log(columnId)
         }

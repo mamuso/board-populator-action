@@ -136,7 +136,7 @@ class PopulateBoard {
                     console.log(`\n# projectId ${projectId}`);
                     // eslint-disable-next-line no-console
                     console.log(`---------------------------------------------------------------`);
-                    let { columnId, columnOptions } = yield this.getColumnOptions(graphqlWithAuth, projectId);
+                    const { columnId, columnOptions } = yield this.getColumnOptions(graphqlWithAuth, projectId);
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
@@ -181,10 +181,16 @@ class PopulateBoard {
                     }
                     // Sort columns
                     columns = yield this.sortColumns(columns);
+                    // eslint-disable-next-line no-console
+                    console.log('Before');
+                    // eslint-disable-next-line no-console
+                    console.log(columnId);
                     // Create columns
                     if (!this.config.development_mode) {
                         yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
-                        Object.assign({ columnId, columnOptions }, yield this.getColumnOptions(graphqlWithAuth, projectId));
+                        yield Object.assign({ columnId, columnOptions }, this.getColumnOptions(graphqlWithAuth, projectId));
+                        // eslint-disable-next-line no-console
+                        console.log('After');
                         // eslint-disable-next-line no-console
                         console.log(columnId);
                     }
