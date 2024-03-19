@@ -157,7 +157,7 @@ class PopulateBoard {
                         columns = columns.concat(folderNames);
                         // Parse cards
                         for (const folderName of folderNames) {
-                            const files = fs_1.default.readdirSync(`${cardsPath}/${folderName}`);
+                            const files = fs_1.default.readdirSync(`${cardsPath}/${folderName}`).sort();
                             for (const file of files) {
                                 if (file.endsWith('.md')) {
                                     const cardPath = `${cardsPath}/${folderName}/${file}`;

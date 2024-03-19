@@ -75,7 +75,7 @@ export default class PopulateBoard {
 
           // Parse cards
           for (const folderName of folderNames) {
-            const files = fs.readdirSync(`${cardsPath}/${folderName}`)
+            const files = fs.readdirSync(`${cardsPath}/${folderName}`).sort()
             for (const file of files) {
               if (file.endsWith('.md')) {
                 const cardPath = `${cardsPath}/${folderName}/${file}`
