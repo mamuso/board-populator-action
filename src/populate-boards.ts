@@ -80,6 +80,7 @@ export default class PopulateBoard {
           const folderNames = fs.readdirSync(cardsPath)
           columns = columns.concat(folderNames)
 
+          // Parse cards
           for (const folderName of folderNames) {
             const files = fs.readdirSync(`${cardsPath}/${folderName}`)
             for (const file of files) {
@@ -92,16 +93,28 @@ export default class PopulateBoard {
                   column: folderName
                 }
                 cardContents.push(card)
-                // eslint-disable-next-line no-console
-                console.log(card.title)
               }
             }
           }
         }
 
-        // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
-        // const cards: Card[] = JSON.parse(cardContent).cards
+        // Sort columns
+        columns = await this.sortColumns(columns)
 
+        // Create columns
+        if (!this.config.development_mode) {
+          await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
+          // refresh column options
+          const refreshColumn = await this.getColumnOptions(graphqlWithAuth, projectId)
+          columnId = refreshColumn.columnId
+          columnOptions = refreshColumn.columnOptions
+        }
+
+        // Insert cards
+        for (const card of cardContents) {
+          // eslint-disable-next-line no-console
+          console.log(this.sanitizeName(card.title))
+        }
         // for (const c of cards) {
         //   // eslint-disable-next-line no-console
         //   console.log(c.title)
@@ -119,19 +132,6 @@ export default class PopulateBoard {
         //     )
         //   }
         // }
-        // }
-
-        // Sort columns
-        columns = await this.sortColumns(columns)
-
-        // Create columns
-        if (!this.config.development_mode) {
-          await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
-          // refresh column options
-          const refreshColumn = await this.getColumnOptions(graphqlWithAuth, projectId)
-          columnId = refreshColumn.columnId
-          columnOptions = refreshColumn.columnOptions
-        }
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -216,18 +216,24 @@ export default class PopulateBoard {
     }
   }
 
+  sanitizeName(name: string): string {
+    if (this.config.use_delimiter && this.config.delimiter) {
+      name
+        .split(this.config.delimiter ?? '')
+        .slice(1)
+        .join(this.config.delimiter ?? '')
+    }
+
+    return name
+  }
+
   async sortColumns(columns: string[]): Promise<string[]> {
     // Sort columns
     columns.sort()
 
     // Sanitize the column names if we use a delimiter
     if (this.config.use_delimiter && this.config.delimiter) {
-      columns = columns.map(column =>
-        column
-          .split(this.config.delimiter ?? '')
-          .slice(1)
-          .join(this.config.delimiter ?? '')
-      )
+      columns = columns.map(column => (column = this.sanitizeName(column)))
     }
 
     // Compact the array

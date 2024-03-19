@@ -155,12 +155,13 @@ class PopulateBoard {
                     removethisline;
                     // Create cards and set status
                     let columns = [];
-                    let cardContents = [];
+                    const cardContents = [];
                     for (const content of board.content) {
                         // Columns
                         const cardsPath = `${this.config.cards_path}/${content}/`;
                         const folderNames = fs_1.default.readdirSync(cardsPath);
                         columns = columns.concat(folderNames);
+                        // Parse cards
                         for (const folderName of folderNames) {
                             const files = fs_1.default.readdirSync(`${cardsPath}/${folderName}`);
                             for (const file of files) {
@@ -173,14 +174,25 @@ class PopulateBoard {
                                         column: folderName
                                     };
                                     cardContents.push(card);
-                                    // eslint-disable-next-line no-console
-                                    console.log(card.title);
                                 }
                             }
                         }
                     }
-                    // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
-                    // const cards: Card[] = JSON.parse(cardContent).cards
+                    // Sort columns
+                    columns = yield this.sortColumns(columns);
+                    // Create columns
+                    if (!this.config.development_mode) {
+                        yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
+                        // refresh column options
+                        const refreshColumn = yield this.getColumnOptions(graphqlWithAuth, projectId);
+                        columnId = refreshColumn.columnId;
+                        columnOptions = refreshColumn.columnOptions;
+                    }
+                    // Insert cards
+                    for (const card of cardContents) {
+                        // eslint-disable-next-line no-console
+                        console.log(this.sanitizeName(card.title));
+                    }
                     // for (const c of cards) {
                     //   // eslint-disable-next-line no-console
                     //   console.log(c.title)
@@ -197,17 +209,6 @@ class PopulateBoard {
                     //     )
                     //   }
                     // }
-                    // }
-                    // Sort columns
-                    columns = yield this.sortColumns(columns);
-                    // Create columns
-                    if (!this.config.development_mode) {
-                        yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
-                        // refresh column options
-                        const refreshColumn = yield this.getColumnOptions(graphqlWithAuth, projectId);
-                        columnId = refreshColumn.columnId;
-                        columnOptions = refreshColumn.columnOptions;
-                    }
                 }
             }
             catch (error) {
@@ -289,19 +290,23 @@ class PopulateBoard {
             }
         });
     }
+    sanitizeName(name) {
+        var _a, _b;
+        if (this.config.use_delimiter && this.config.delimiter) {
+            name
+                .split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')
+                .slice(1)
+                .join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
+        }
+        return name;
+    }
     sortColumns(columns) {
         return __awaiter(this, void 0, void 0, function* () {
             // Sort columns
             columns.sort();
             // Sanitize the column names if we use a delimiter
             if (this.config.use_delimiter && this.config.delimiter) {
-                columns = columns.map(column => {
-                    var _a, _b;
-                    return column
-                        .split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')
-                        .slice(1)
-                        .join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
-                });
+                columns = columns.map(column => (column = this.sanitizeName(column)));
             }
             // Compact the array
             columns = columns.filter((value, index, self) => {
