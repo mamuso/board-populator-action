@@ -45,10 +45,6 @@ export default class PopulateBoard {
 
         // Get the project metadata
         const projectId = await this.getProjectId(graphqlWithAuth, board)
-        // eslint-disable-next-line no-console
-        console.log(`\n# projectId ${projectId}`)
-        // eslint-disable-next-line no-console
-        console.log(`---------------------------------------------------------------`)
         let {columnId, columnOptions} = await this.getColumnOptions(graphqlWithAuth, projectId)
         if (!projectId) {
           throw new Error('Project ID not found')
@@ -61,15 +57,18 @@ export default class PopulateBoard {
 
         // We don't need to empty the project if we are in development mode
         if (!this.config.development_mode) {
+          // eslint-disable-next-line no-console
+          console.log(`Empty`)
+
           // Empty the project
           await this.emptyProject(graphqlWithAuth, projectId)
+
+          // eslint-disable-next-line no-console
+          console.log(`Update`)
 
           // Update the board metadata
           await this.updateBoardMeta(graphqlWithAuth, projectId, board)
         }
-
-        const removethisline = [columnId, columnOptions]
-        removethisline
 
         // Create cards and set status
         let columns: string[] = []
