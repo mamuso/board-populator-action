@@ -298,10 +298,9 @@ export default class PopulateBoard {
     // eslint-disable-next-line no-console
     console.log(`Empty`)
 
-    let deleteQuery = ''
-
     let isEmpty = false
     while (!isEmpty) {
+      let deleteQuery = ''
       // eslint-disable-next-line no-console
       console.log(`Before emptying`)
 
@@ -327,13 +326,13 @@ export default class PopulateBoard {
         }
     `
       }
-    }
-    if (deleteQuery !== '') {
-      await graphqlWithAuth(`
+      if (deleteQuery !== '') {
+        await graphqlWithAuth(`
         mutation {
           ${deleteQuery}
         }
       `)
+      }
     }
   }
 

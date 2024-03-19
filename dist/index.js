@@ -358,9 +358,9 @@ class PopulateBoard {
         return __awaiter(this, void 0, void 0, function* () {
             // eslint-disable-next-line no-console
             console.log(`Empty`);
-            let deleteQuery = '';
             let isEmpty = false;
             while (!isEmpty) {
+                let deleteQuery = '';
                 // eslint-disable-next-line no-console
                 console.log(`Before emptying`);
                 const boardItems = yield this.getBoardItems(graphqlWithAuth, projectId);
@@ -382,13 +382,13 @@ class PopulateBoard {
         }
     `;
                 }
-            }
-            if (deleteQuery !== '') {
-                yield graphqlWithAuth(`
+                if (deleteQuery !== '') {
+                    yield graphqlWithAuth(`
         mutation {
           ${deleteQuery}
         }
       `);
+                }
             }
         });
     }
