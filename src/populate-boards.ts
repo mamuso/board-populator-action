@@ -361,7 +361,7 @@ export default class PopulateBoard {
           input: {
             projectId: "${projectId}",
             title: "${this.sanitizeName(card.title)}",
-            body: "${card.body}"
+            body: """${card.body}"""
           }
         ) {
           projectItem {
