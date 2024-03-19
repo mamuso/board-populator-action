@@ -57,14 +57,8 @@ export default class PopulateBoard {
 
         // We don't need to empty the project if we are in development mode
         if (!this.config.development_mode) {
-          // eslint-disable-next-line no-console
-          console.log(`Empty`)
-
           // Empty the project
           await this.emptyProject(graphqlWithAuth, projectId)
-
-          // eslint-disable-next-line no-console
-          console.log(`Update`)
 
           // Update the board metadata
           await this.updateBoardMeta(graphqlWithAuth, projectId, board)
@@ -295,18 +289,11 @@ export default class PopulateBoard {
   }
 
   async emptyProject(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
-    // eslint-disable-next-line no-console
-    console.log(`Empty`)
-
     let isEmpty = false
     while (!isEmpty) {
       let deleteQuery = ''
-      // eslint-disable-next-line no-console
-      console.log(`Before emptying`)
 
       const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
-      // eslint-disable-next-line no-console
-      console.log(`After Query`)
 
       if (boardItems.length === 0) {
         isEmpty = true
@@ -314,9 +301,6 @@ export default class PopulateBoard {
       }
 
       for (const i in boardItems) {
-        // eslint-disable-next-line no-console
-        console.log(i)
-
         deleteQuery += `
         deleteproject${i}: deleteProjectV2Item(input: {
           projectId: "${projectId}",
