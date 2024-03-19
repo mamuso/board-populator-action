@@ -112,7 +112,7 @@ export default class PopulateBoard {
         // Create columns
         if (!this.config.development_mode) {
           await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
-          await Object.assign({columnId, columnOptions}, this.getColumnOptions(graphqlWithAuth, projectId))
+          await Object.assign(columnId, columnOptions, this.getColumnOptions(graphqlWithAuth, projectId))
 
           // eslint-disable-next-line no-console
           console.log('After')

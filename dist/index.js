@@ -188,7 +188,7 @@ class PopulateBoard {
                     // Create columns
                     if (!this.config.development_mode) {
                         yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
-                        yield Object.assign({ columnId, columnOptions }, this.getColumnOptions(graphqlWithAuth, projectId));
+                        yield Object.assign(columnId, columnOptions, this.getColumnOptions(graphqlWithAuth, projectId));
                         // eslint-disable-next-line no-console
                         console.log('After');
                         // eslint-disable-next-line no-console
