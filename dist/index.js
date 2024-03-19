@@ -155,46 +155,58 @@ class PopulateBoard {
                     removethisline;
                     // Create cards and set status
                     let columns = [];
+                    let cardContents = [];
                     for (const content of board.content) {
                         // Columns
                         const cardsPath = `${this.config.cards_path}/${content}/`;
                         const folderNames = fs_1.default.readdirSync(cardsPath);
                         columns = columns.concat(folderNames);
-                        // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
-                        // const cards: Card[] = JSON.parse(cardContent).cards
-                        // for (const c of cards) {
-                        //   // eslint-disable-next-line no-console
-                        //   console.log(c.title)
-                        //   // We don't need to add cards if we are in development mode
-                        //   if (!this.config.development_mode) {
-                        //     // Add card and set status
-                        //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-                        //     await this.updateCardStatus(
-                        //       graphqlWithAuth,
-                        //       projectId,
-                        //       cardId,
-                        //       columnId,
-                        //       this.optionIdByName(columnOptions, c.column ?? '')
-                        //     )
-                        //   }
-                        // }
+                        for (const folderName of folderNames) {
+                            const files = fs_1.default.readdirSync(`${cardsPath}/${folderName}`);
+                            for (const file of files) {
+                                if (file.endsWith('.md')) {
+                                    const cardPath = `${cardsPath}/${folderName}/${file}`;
+                                    const cardContent = fs_1.default.readFileSync(cardPath, 'utf8');
+                                    const card = {
+                                        title: file.replace('.md', ''),
+                                        body: cardContent,
+                                        column: folderName
+                                    };
+                                    cardContents.push(card);
+                                    // eslint-disable-next-line no-console
+                                    console.log(card.title);
+                                }
+                            }
+                        }
                     }
+                    // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
+                    // const cards: Card[] = JSON.parse(cardContent).cards
+                    // for (const c of cards) {
+                    //   // eslint-disable-next-line no-console
+                    //   console.log(c.title)
+                    //   // We don't need to add cards if we are in development mode
+                    //   if (!this.config.development_mode) {
+                    //     // Add card and set status
+                    //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+                    //     await this.updateCardStatus(
+                    //       graphqlWithAuth,
+                    //       projectId,
+                    //       cardId,
+                    //       columnId,
+                    //       this.optionIdByName(columnOptions, c.column ?? '')
+                    //     )
+                    //   }
+                    // }
+                    // }
                     // Sort columns
                     columns = yield this.sortColumns(columns);
-                    // eslint-disable-next-line no-console
-                    console.log('Before');
-                    // eslint-disable-next-line no-console
-                    console.log(columnId);
                     // Create columns
                     if (!this.config.development_mode) {
                         yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
+                        // refresh column options
                         const refreshColumn = yield this.getColumnOptions(graphqlWithAuth, projectId);
                         columnId = refreshColumn.columnId;
                         columnOptions = refreshColumn.columnOptions;
-                        // eslint-disable-next-line no-console
-                        console.log('After');
-                        // eslint-disable-next-line no-console
-                        console.log(columnId);
                     }
                 }
             }
@@ -300,7 +312,7 @@ class PopulateBoard {
     }
     createColumn(graphqlWithAuth, projectId, columnId, columns) {
         return __awaiter(this, void 0, void 0, function* () {
-            // Delete columns
+            // Delete column
             if (columnId) {
                 yield graphqlWithAuth(`
         mutation {
@@ -312,7 +324,7 @@ class PopulateBoard {
         }
       `);
             }
-            // Create columns
+            // Create column
             const createColumnQuery = [];
             for (const column of columns) {
                 createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`);

@@ -73,53 +73,64 @@ export default class PopulateBoard {
 
         // Create cards and set status
         let columns: string[] = []
+        const cardContents: Card[] = []
         for (const content of board.content) {
           // Columns
           const cardsPath = `${this.config.cards_path}/${content}/`
           const folderNames = fs.readdirSync(cardsPath)
           columns = columns.concat(folderNames)
 
-          // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
-          // const cards: Card[] = JSON.parse(cardContent).cards
-
-          // for (const c of cards) {
-          //   // eslint-disable-next-line no-console
-          //   console.log(c.title)
-
-          //   // We don't need to add cards if we are in development mode
-          //   if (!this.config.development_mode) {
-          //     // Add card and set status
-          //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-          //     await this.updateCardStatus(
-          //       graphqlWithAuth,
-          //       projectId,
-          //       cardId,
-          //       columnId,
-          //       this.optionIdByName(columnOptions, c.column ?? '')
-          //     )
-          //   }
-          // }
+          for (const folderName of folderNames) {
+            const files = fs.readdirSync(`${cardsPath}/${folderName}`)
+            for (const file of files) {
+              if (file.endsWith('.md')) {
+                const cardPath = `${cardsPath}/${folderName}/${file}`
+                const cardContent = fs.readFileSync(cardPath, 'utf8')
+                const card: Card = {
+                  title: file.replace('.md', ''),
+                  body: cardContent,
+                  column: folderName
+                }
+                cardContents.push(card)
+                // eslint-disable-next-line no-console
+                console.log(card.title)
+              }
+            }
+          }
         }
+
+        // const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
+        // const cards: Card[] = JSON.parse(cardContent).cards
+
+        // for (const c of cards) {
+        //   // eslint-disable-next-line no-console
+        //   console.log(c.title)
+
+        //   // We don't need to add cards if we are in development mode
+        //   if (!this.config.development_mode) {
+        //     // Add card and set status
+        //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+        //     await this.updateCardStatus(
+        //       graphqlWithAuth,
+        //       projectId,
+        //       cardId,
+        //       columnId,
+        //       this.optionIdByName(columnOptions, c.column ?? '')
+        //     )
+        //   }
+        // }
+        // }
 
         // Sort columns
         columns = await this.sortColumns(columns)
 
-        // eslint-disable-next-line no-console
-        console.log('Before')
-        // eslint-disable-next-line no-console
-        console.log(columnId)
-
         // Create columns
         if (!this.config.development_mode) {
           await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
+          // refresh column options
           const refreshColumn = await this.getColumnOptions(graphqlWithAuth, projectId)
           columnId = refreshColumn.columnId
           columnOptions = refreshColumn.columnOptions
-
-          // eslint-disable-next-line no-console
-          console.log('After')
-          // eslint-disable-next-line no-console
-          console.log(columnId)
         }
       }
     } catch (error) {
@@ -233,7 +244,7 @@ export default class PopulateBoard {
     columnId: string,
     columns: string[]
   ): Promise<string> {
-    // Delete columns
+    // Delete column
     if (columnId) {
       await graphqlWithAuth(`
         mutation {
@@ -245,7 +256,7 @@ export default class PopulateBoard {
         }
       `)
     }
-    // Create columns
+    // Create column
     const createColumnQuery: string[] = []
     for (const column of columns) {
       createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`)
