@@ -295,17 +295,29 @@ export default class PopulateBoard {
   }
 
   async emptyProject(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
+    // eslint-disable-next-line no-console
+    console.log(`Empty`)
+
     let deleteQuery = ''
 
     let isEmpty = false
     while (!isEmpty) {
+      // eslint-disable-next-line no-console
+      console.log(`Before emptying`)
+
       const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
+      // eslint-disable-next-line no-console
+      console.log(`After Query`)
+
       if (boardItems.length === 0) {
         isEmpty = true
         break
       }
 
       for (const i in boardItems) {
+        // eslint-disable-next-line no-console
+        console.log(i)
+
         deleteQuery += `
         deleteproject${i}: deleteProjectV2Item(input: {
           projectId: "${projectId}",

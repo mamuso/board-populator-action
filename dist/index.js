@@ -356,15 +356,23 @@ class PopulateBoard {
     }
     emptyProject(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
+            // eslint-disable-next-line no-console
+            console.log(`Empty`);
             let deleteQuery = '';
             let isEmpty = false;
             while (!isEmpty) {
+                // eslint-disable-next-line no-console
+                console.log(`Before emptying`);
                 const boardItems = yield this.getBoardItems(graphqlWithAuth, projectId);
+                // eslint-disable-next-line no-console
+                console.log(`After Query`);
                 if (boardItems.length === 0) {
                     isEmpty = true;
                     break;
                 }
                 for (const i in boardItems) {
+                    // eslint-disable-next-line no-console
+                    console.log(i);
                     deleteQuery += `
         deleteproject${i}: deleteProjectV2Item(input: {
           projectId: "${projectId}",
