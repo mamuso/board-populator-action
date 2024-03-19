@@ -231,12 +231,12 @@ class PopulateBoard {
       }
     `);
             // eslint-disable-next-line no-console
-            console.log(`\n# columnId ${projectQuery.organization.projectV2.field.id}`);
+            console.log(`\n# columnId ${projectQuery.node.field.id}`);
             // eslint-disable-next-line no-console
-            console.log(`\n# columnId ${projectQuery.organization.projectV2.field.options}`);
+            console.log(`\n# columnId ${projectQuery.node.field.options}`);
             return {
-                columnId: projectQuery.organization.projectV2.field.id,
-                columnOptions: projectQuery.organization.projectV2.field.options
+                columnId: projectQuery.node.field.id,
+                columnOptions: projectQuery.node.field.options
             };
             // } catch (error) {
             //   return {
@@ -264,7 +264,7 @@ class PopulateBoard {
         }
       }
     `);
-                return projectItemsQuery.organization.projectV2.items.edges;
+                return projectItemsQuery.node.items.edges;
             }
             catch (error) {
                 return [];
