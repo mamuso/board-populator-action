@@ -110,7 +110,7 @@ class PopulateBoard {
         Object.assign(this.config, populateConfig);
     }
     run() {
-        var _a;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const boardsData = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(`${this.config.boards}`, 'utf8')));
@@ -192,23 +192,13 @@ class PopulateBoard {
                     for (const card of cardContents) {
                         // eslint-disable-next-line no-console
                         console.log(this.sanitizeName(card.title));
+                        // We don't need to add cards if we are in development mode
+                        if (!this.config.development_mode) {
+                            // Add card and set status
+                            const cardId = yield this.addCard(graphqlWithAuth, projectId, card);
+                            yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, columnId, this.optionIdByName(columnOptions, (_b = this.sanitizeName(card.column)) !== null && _b !== void 0 ? _b : ''));
+                        }
                     }
-                    // for (const c of cards) {
-                    //   // eslint-disable-next-line no-console
-                    //   console.log(c.title)
-                    //   // We don't need to add cards if we are in development mode
-                    //   if (!this.config.development_mode) {
-                    //     // Add card and set status
-                    //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-                    //     await this.updateCardStatus(
-                    //       graphqlWithAuth,
-                    //       projectId,
-                    //       cardId,
-                    //       columnId,
-                    //       this.optionIdByName(columnOptions, c.column ?? '')
-                    //     )
-                    //   }
-                    // }
                 }
             }
             catch (error) {
@@ -292,9 +282,9 @@ class PopulateBoard {
     }
     sanitizeName(name) {
         var _a, _b;
-        let sanitizedName = name;
+        let sanitizedName = `${name}`;
         if (this.config.use_delimiter && this.config.delimiter) {
-            const processedName = name.split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '');
+            const processedName = sanitizedName.split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '');
             if (processedName.length > 1) {
                 sanitizedName = processedName.slice(1).join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
             }
@@ -422,7 +412,7 @@ class PopulateBoard {
         addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "${card.title}",
+            title: "${this.sanitizeName(card.title)}",
             body: "${card.body}"
           }
         ) {

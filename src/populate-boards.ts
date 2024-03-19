@@ -114,24 +114,20 @@ export default class PopulateBoard {
         for (const card of cardContents) {
           // eslint-disable-next-line no-console
           console.log(this.sanitizeName(card.title))
-        }
-        // for (const c of cards) {
-        //   // eslint-disable-next-line no-console
-        //   console.log(c.title)
 
-        //   // We don't need to add cards if we are in development mode
-        //   if (!this.config.development_mode) {
-        //     // Add card and set status
-        //     const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
-        //     await this.updateCardStatus(
-        //       graphqlWithAuth,
-        //       projectId,
-        //       cardId,
-        //       columnId,
-        //       this.optionIdByName(columnOptions, c.column ?? '')
-        //     )
-        //   }
-        // }
+          // We don't need to add cards if we are in development mode
+          if (!this.config.development_mode) {
+            // Add card and set status
+            const cardId: string = await this.addCard(graphqlWithAuth, projectId, card)
+            await this.updateCardStatus(
+              graphqlWithAuth,
+              projectId,
+              cardId,
+              columnId,
+              this.optionIdByName(columnOptions, this.sanitizeName(card.column) ?? '')
+            )
+          }
+        }
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -216,10 +212,10 @@ export default class PopulateBoard {
     }
   }
 
-  sanitizeName(name: string): string {
-    let sanitizedName: string = name
+  sanitizeName(name: string | undefined): string {
+    let sanitizedName = `${name}`
     if (this.config.use_delimiter && this.config.delimiter) {
-      const processedName = name.split(this.config.delimiter ?? '')
+      const processedName = sanitizedName.split(this.config.delimiter ?? '')
       if (processedName.length > 1) {
         sanitizedName = processedName.slice(1).join(this.config.delimiter ?? '')
       }
@@ -354,7 +350,7 @@ export default class PopulateBoard {
         addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "${card.title}",
+            title: "${this.sanitizeName(card.title)}",
             body: "${card.body}"
           }
         ) {
