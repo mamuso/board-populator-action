@@ -293,7 +293,7 @@ class PopulateBoard {
     sanitizeName(name) {
         var _a, _b;
         if (this.config.use_delimiter && this.config.delimiter) {
-            name
+            name = name
                 .split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')
                 .slice(1)
                 .join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');

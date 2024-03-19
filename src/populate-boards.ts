@@ -218,7 +218,7 @@ export default class PopulateBoard {
 
   sanitizeName(name: string): string {
     if (this.config.use_delimiter && this.config.delimiter) {
-      name
+      name = name
         .split(this.config.delimiter ?? '')
         .slice(1)
         .join(this.config.delimiter ?? '')
