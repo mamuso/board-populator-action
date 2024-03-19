@@ -134,9 +134,9 @@ class PopulateBoard {
                     const projectId = yield this.getProjectId(graphqlWithAuth, board);
                     // eslint-disable-next-line no-console
                     console.log(`\n# projectId ${projectId}`);
-                    const { columnId, columnOptions } = yield this.getColumnOptions(graphqlWithAuth, projectId);
                     // eslint-disable-next-line no-console
-                    console.log(`\n# columnId, columnOptions ${columnId} ${columnOptions}`);
+                    console.log(`---------------------------------------------------------------`);
+                    let { columnId, columnOptions } = yield this.getColumnOptions(graphqlWithAuth, projectId);
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
@@ -184,9 +184,10 @@ class PopulateBoard {
                     // Create columns
                     if (!this.config.development_mode) {
                         yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
+                        Object.assign({ columnId, columnOptions }, yield this.getColumnOptions(graphqlWithAuth, projectId));
+                        // eslint-disable-next-line no-console
+                        console.log(columnId);
                     }
-                    // eslint-disable-next-line no-console
-                    console.log(columns);
                 }
             }
             catch (error) {
@@ -211,8 +212,8 @@ class PopulateBoard {
     }
     getColumnOptions(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
-            // try {
-            const projectQuery = yield graphqlWithAuth(`
+            try {
+                const projectQuery = yield graphqlWithAuth(`
       query {
         node(id: "${projectId}") {
           ... on ProjectV2 {
@@ -230,20 +231,17 @@ class PopulateBoard {
         }
       }
     `);
-            // eslint-disable-next-line no-console
-            console.log(`\n# columnId ${projectQuery.node.field.id}`);
-            // eslint-disable-next-line no-console
-            console.log(`\n# columnId ${projectQuery.node.field.options}`);
-            return {
-                columnId: projectQuery.node.field.id,
-                columnOptions: projectQuery.node.field.options
-            };
-            // } catch (error) {
-            //   return {
-            //     columnId: '',
-            //     columnOptions: [{id: '', name: ''}]
-            //   }
-            // }
+                return {
+                    columnId: projectQuery.node.field.id,
+                    columnOptions: projectQuery.node.field.options
+                };
+            }
+            catch (error) {
+                return {
+                    columnId: '',
+                    columnOptions: [{ id: '', name: '' }]
+                };
+            }
         });
     }
     getBoardItems(graphqlWithAuth, projectId) {
@@ -295,15 +293,7 @@ class PopulateBoard {
     createColumn(graphqlWithAuth, projectId, columnId, columns) {
         return __awaiter(this, void 0, void 0, function* () {
             // Delete columns
-            // eslint-disable-next-line no-console
-            console.log('Is it set?');
-            // eslint-disable-next-line no-console
-            console.log(columnId);
             if (columnId) {
-                // eslint-disable-next-line no-console
-                console.log('Deleting column');
-                // eslint-disable-next-line no-console
-                console.log(columnId);
                 yield graphqlWithAuth(`
         mutation {
           deleteProjectV2Field(input: {
@@ -337,8 +327,6 @@ class PopulateBoard {
         }
       }
     `);
-            // eslint-disable-next-line no-console
-            console.log(fieldQuery);
             return fieldQuery.createProjectV2Field.projectV2Field.id;
         });
     }

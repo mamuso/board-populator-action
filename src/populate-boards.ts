@@ -47,9 +47,9 @@ export default class PopulateBoard {
         const projectId = await this.getProjectId(graphqlWithAuth, board)
         // eslint-disable-next-line no-console
         console.log(`\n# projectId ${projectId}`)
-        const {columnId, columnOptions} = await this.getColumnOptions(graphqlWithAuth, projectId)
         // eslint-disable-next-line no-console
-        console.log(`\n# columnId, columnOptions ${columnId} ${columnOptions}`)
+        console.log(`---------------------------------------------------------------`)
+        const {columnId, columnOptions} = await this.getColumnOptions(graphqlWithAuth, projectId)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
@@ -107,10 +107,11 @@ export default class PopulateBoard {
         // Create columns
         if (!this.config.development_mode) {
           await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
-        }
+          Object.assign({columnId, columnOptions}, await this.getColumnOptions(graphqlWithAuth, projectId))
 
-        // eslint-disable-next-line no-console
-        console.log(columns)
+          // eslint-disable-next-line no-console
+          console.log(columnId)
+        }
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -139,8 +140,8 @@ export default class PopulateBoard {
     columnId: string
     columnOptions: [{id: string; name: string}]
   }> {
-    // try {
-    const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+    try {
+      const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       query {
         node(id: "${projectId}") {
           ... on ProjectV2 {
@@ -158,21 +159,17 @@ export default class PopulateBoard {
         }
       }
     `)
-    // eslint-disable-next-line no-console
-    console.log(`\n# columnId ${projectQuery.node.field.id}`)
-    // eslint-disable-next-line no-console
-    console.log(`\n# columnId ${projectQuery.node.field.options}`)
 
-    return {
-      columnId: projectQuery.node.field.id,
-      columnOptions: projectQuery.node.field.options
+      return {
+        columnId: projectQuery.node.field.id,
+        columnOptions: projectQuery.node.field.options
+      }
+    } catch (error) {
+      return {
+        columnId: '',
+        columnOptions: [{id: '', name: ''}]
+      }
     }
-    // } catch (error) {
-    //   return {
-    //     columnId: '',
-    //     columnOptions: [{id: '', name: ''}]
-    //   }
-    // }
   }
 
   async getBoardItems(graphqlWithAuth: typeof graphql, projectId: string): Promise<[{node: {id: string}}] | []> {
@@ -228,15 +225,7 @@ export default class PopulateBoard {
     columns: string[]
   ): Promise<string> {
     // Delete columns
-    // eslint-disable-next-line no-console
-    console.log('Is it set?')
-    // eslint-disable-next-line no-console
-    console.log(columnId)
     if (columnId) {
-      // eslint-disable-next-line no-console
-      console.log('Deleting column')
-      // eslint-disable-next-line no-console
-      console.log(columnId)
       await graphqlWithAuth(`
         mutation {
           deleteProjectV2Field(input: {
@@ -271,8 +260,6 @@ export default class PopulateBoard {
       }
     `)
 
-    // eslint-disable-next-line no-console
-    console.log(fieldQuery)
     return fieldQuery.createProjectV2Field.projectV2Field.id
   }
 
