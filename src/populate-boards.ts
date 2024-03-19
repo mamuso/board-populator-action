@@ -6,7 +6,7 @@ import type {GraphQlQueryResponseData} from '@octokit/graphql'
 // import {createAppAuth} from '@octokit/auth-app'
 
 import DefaultConfig from './config'
-import type {Config, Board, Card, SelcetOption} from './types'
+import type {Config, Board, Card} from './types'
 
 export default class PopulateBoard {
   config: Config
@@ -129,29 +129,17 @@ export default class PopulateBoard {
   }
 
   async getProjectId(graphqlWithAuth: typeof graphql, board: Board): Promise<string> {
-    const query = `
-    query GetProjectId($login: String!, $number: Int!) {
-      organization(login: $login) {
-        projectV2(number: $number) {
-          id
+    const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        organization(login:"${board.owner}"){
+          projectV2(number: ${board.board_id}) {
+            id
+          }
         }
       }
-    }
-  `
+    `)
 
-    const variables = {
-      login: board.owner,
-      number: board.board_id
-    }
-
-    try {
-      const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(query, variables)
-      return projectQuery.organization.projectV2.id
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to get project ID: ${error}`)
-      throw error
-    }
+    return projectQuery.organization.projectV2.id
   }
 
   async getColumnOptions(
@@ -161,39 +149,31 @@ export default class PopulateBoard {
     columnId: string
     columnOptions: [{id: string; name: string}]
   }> {
-    const query = `
-    query GetColumnOptions($id: String!, $name: String!) {
-      node(id: $id) {
-        ... on ProjectV2 {
-          field(name: $name) {
-            ... on ProjectV2SingleSelectField {
-              id
-              name
-              options {
+    try {
+      const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+            field(name: "${this.config.column_name}") {
+              ... on ProjectV2SingleSelectField {
                 id
                 name
+                options {
+                  id
+                  name
+                }
               }
             }
           }
         }
       }
-    }
-  `
+    `)
 
-    const variables = {
-      id: projectId,
-      name: this.config.column_name
-    }
-
-    try {
-      const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(query, variables)
       return {
         columnId: projectQuery.node.field.id,
         columnOptions: projectQuery.node.field.options
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to get column options: ${error}`)
       return {
         columnId: '',
         columnOptions: [{id: '', name: ''}]
@@ -202,32 +182,25 @@ export default class PopulateBoard {
   }
 
   async getBoardItems(graphqlWithAuth: typeof graphql, projectId: string): Promise<[{node: {id: string}}] | []> {
-    const query = `
-    query GetBoardItems($id: String!) {
-      node(id: $id) {
-        ... on ProjectV2 {
-          items(first: 100) {
-            edges {
-              node {
-                id
+    try {
+      const projectItemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+            items(first: 100) {
+              edges {
+                node {
+                  id
+                }
               }
             }
           }
         }
       }
-    }
-  `
+    `)
 
-    const variables = {
-      id: projectId
-    }
-
-    try {
-      const projectItemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(query, variables)
       return projectItemsQuery.node.items.edges
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to get board items: ${error}`)
       return []
     }
   }
@@ -235,9 +208,9 @@ export default class PopulateBoard {
   sanitizeName(name: string | undefined): string {
     let sanitizedName = `${name}`
     if (this.config.use_delimiter && this.config.delimiter) {
-      const processedName = sanitizedName.split(this.config.delimiter)
+      const processedName = sanitizedName.split(this.config.delimiter ?? '')
       if (processedName.length > 1) {
-        sanitizedName = processedName.slice(1).join(this.config.delimiter)
+        sanitizedName = processedName.slice(1).join(this.config.delimiter ?? '')
       }
     }
     return sanitizedName
@@ -249,11 +222,13 @@ export default class PopulateBoard {
 
     // Sanitize the column names if we use a delimiter
     if (this.config.use_delimiter && this.config.delimiter) {
-      columns = columns.map(column => this.sanitizeName(column))
+      columns = columns.map(column => (column = this.sanitizeName(column)))
     }
 
     // Compact the array
-    columns = [...new Set(columns)]
+    columns = columns.filter((value, index, self) => {
+      return self.indexOf(value) === index
+    })
 
     return columns
   }
@@ -266,78 +241,57 @@ export default class PopulateBoard {
   ): Promise<string> {
     // Delete column
     if (columnId) {
-      const deleteColumnQuery = `
-      mutation DeleteColumn($fieldId: String!) {
-        deleteProjectV2Field(input: { fieldId: $fieldId }) {
-          clientMutationId
+      await graphqlWithAuth(`
+        mutation {
+          deleteProjectV2Field(input: {
+            fieldId: "${columnId}"
+          }) {
+            clientMutationId
+          }
         }
-      }
-    `
-
-      const deleteColumnVariables = {
-        fieldId: columnId
-      }
-
-      try {
-        await graphqlWithAuth(deleteColumnQuery, deleteColumnVariables)
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to delete column: ${error}`)
-        throw error
-      }
+      `)
     }
-
     // Create column
-    const createColumnQuery = `
-    mutation CreateColumn(
-      $projectId: String!,
-      $name: String!,
-      $singleSelectOptions: [ProjectV2FieldSingleSelectOptionInput!]!
-    ) {
-      createProjectV2Field(
-        input: {
-          projectId: $projectId, 
-          dataType: SINGLE_SELECT,
-          name: $name, 
-          singleSelectOptions: $singleSelectOptions
-        }
-      ) {
-        projectV2Field {
-          ... on ProjectV2Field {
-            id
+    const createColumnQuery: string[] = []
+    for (const column of columns) {
+      createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`)
+    }
+    const fieldQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      mutation {
+        createProjectV2Field(
+          input: {
+            projectId: "${projectId}", 
+            dataType: SINGLE_SELECT,
+            name: "${this.config.column_name}", 
+            singleSelectOptions: [${createColumnQuery.join(', ')}]
+          }
+        ){
+          projectV2Field {
+            ... on ProjectV2Field {
+              id
+            }
           }
         }
       }
-    }
-  `
+    `)
 
-    const createColumnVariables = {
-      projectId,
-      name: this.config.column_name,
-      singleSelectOptions: columns.map(column => ({name: column, description: '', color: 'GRAY'}))
-    }
-
-    try {
-      const fieldQuery: GraphQlQueryResponseData = await graphqlWithAuth(createColumnQuery, createColumnVariables)
-      return fieldQuery.createProjectV2Field.projectV2Field.id
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to create column: ${error}`)
-      throw error
-    }
+    return fieldQuery.createProjectV2Field.projectV2Field.id
   }
 
-  optionIdByName(options: SelcetOption[], name: string): string | undefined {
-    return options.find(o => o.name === name)?.id
+  optionIdByName(options: [{id: string; name: string}], name: string): string | undefined {
+    const option = options.find(o => o.name === name)
+    if (option) {
+      return option.id
+    } else {
+      return undefined
+      // throw new Error(`Status option not found: ${name}`)
+    }
   }
 
   async emptyProject(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
     let isEmpty = false
-    let iterationCount = 0
-    const maxIterations = 30 // Set a limit to avoid infinite loops
-
-    while (!isEmpty && iterationCount < maxIterations) {
-      iterationCount++
+    while (!isEmpty) {
+      let deleteQuery = ''
 
       const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
 
@@ -346,102 +300,62 @@ export default class PopulateBoard {
         break
       }
 
-      const deleteQueries = boardItems.map(
-        (item, index) => `
-      deleteproject${index}: deleteProjectV2Item(input: {
-        projectId: "${projectId}",
-        itemId: "${item.node.id}"
-      }) {
-        clientMutationId
-      }
+      for (const i in boardItems) {
+        deleteQuery += `
+        deleteproject${i}: deleteProjectV2Item(input: {
+          projectId: "${projectId}",
+          itemId: "${boardItems[i].node.id}"
+        }) {
+          clientMutationId
+        }
     `
-      )
-
-      if (deleteQueries.length > 0) {
-        const query = `
-        mutation {
-          ${deleteQueries.join('\n')}
-        }
-      `
-
-        try {
-          await graphqlWithAuth(query)
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error(`Failed to delete project items: ${error}`)
-          throw error
-        }
       }
-    }
-
-    if (iterationCount === maxIterations) {
-      // eslint-disable-next-line no-console
-      console.warn('Reached maximum iterations without emptying the project')
+      if (deleteQuery !== '') {
+        await graphqlWithAuth(`
+        mutation {
+          ${deleteQuery}
+        }
+      `)
+      }
     }
   }
 
   async updateBoardMeta(graphqlWithAuth: typeof graphql, projectId: string, board: Board): Promise<void> {
-    const query = `
-    mutation UpdateBoardMeta($projectId: String!, $title: String!, $shortDescription: String!) {
-      updateProjectV2(
-        input: {
-          projectId: $projectId,
-          title: $title,
-          shortDescription: $shortDescription
-        }
-      ) {
-        projectV2 {
-          id
+    await graphqlWithAuth(`
+      mutation {
+        updateProjectV2(
+          input: {
+            projectId: "${projectId}",
+            title: "${board.name}",
+            shortDescription: "${board.description}"
+          }
+        ) {
+          projectV2 {
+            id
+          }
         }
       }
-    }
-  `
-
-    const variables = {
-      projectId,
-      title: board.name,
-      shortDescription: board.description
-    }
-
-    try {
-      await graphqlWithAuth(query, variables)
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to update board meta: ${error}`)
-      throw error
-    }
+    `)
   }
+
   async addCard(graphqlWithAuth: typeof graphql, projectId: string, card: Card): Promise<string> {
-    const query = `
-    mutation AddCard($projectId: String!, $title: String!, $body: String!) {
-      addProjectV2DraftIssue(
-        input: {
-          projectId: $projectId,
-          title: $title,
-          body: $body
-        }
-      ) {
-        projectItem {
-          id
+    const cardQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      mutation {
+        addProjectV2DraftIssue(
+          input: {
+            projectId: "${projectId}",
+            title: "${this.sanitizeName(card.title)}",
+            body: """${card.body}"""
+          }
+        ) {
+          projectItem {
+            id
+          }
         }
       }
-    }
-  `
+    `)
 
-    const variables = {
-      projectId,
-      title: this.sanitizeName(card.title),
-      body: card.body
-    }
-
-    try {
-      const cardQuery: GraphQlQueryResponseData = await graphqlWithAuth(query, variables)
-      return cardQuery.addProjectV2DraftIssue.projectItem.id
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to add card: ${error}`)
-      throw error
-    }
+    return cardQuery.addProjectV2DraftIssue.projectItem.id
   }
 
   async updateCardStatus(
@@ -452,37 +366,22 @@ export default class PopulateBoard {
     valueId: string | undefined
   ): Promise<void> {
     if (valueId) {
-      const query = `
-      mutation UpdateCardStatus($projectId: String!, $itemId: String!, $fieldId: String!, $valueId: String!) {
-        updateProjectV2ItemFieldValue(input:{
-          projectId: $projectId
-          itemId: $itemId
-          fieldId: $fieldId
-          value: {
-            singleSelectOptionId: $valueId
-          }
-        }) {
-          projectV2Item {
-            id
+      await graphqlWithAuth(`
+        mutation {
+          updateProjectV2ItemFieldValue(input:{
+            projectId: "${projectId}"
+            itemId: "${cardId}"
+            fieldId: "${columnId}"
+            value: {
+              singleSelectOptionId: "${valueId}"
+            }
+          }) {
+            projectV2Item {
+              id
+            }
           }
         }
-      }
-    `
-
-      const variables = {
-        projectId,
-        itemId: cardId,
-        fieldId: columnId,
-        valueId
-      }
-
-      try {
-        await graphqlWithAuth(query, variables)
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to update card status: ${error}`)
-        throw error
-      }
+      `)
     }
   }
 }
