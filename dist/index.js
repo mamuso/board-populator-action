@@ -203,45 +203,64 @@ class PopulateBoard {
     }
     getProjectId(graphqlWithAuth, board) {
         return __awaiter(this, void 0, void 0, function* () {
-            const projectQuery = yield graphqlWithAuth(`
-      query {
-        organization(login:"${board.owner}"){
-          projectV2(number: ${board.board_id}) {
-            id
-          }
+            const query = `
+    query GetProjectId($login: String!, $number: Int!) {
+      organization(login: $login) {
+        projectV2(number: $number) {
+          id
         }
       }
-    `);
-            return projectQuery.organization.projectV2.id;
+    }
+  `;
+            const variables = {
+                login: board.owner,
+                number: board.board_id
+            };
+            try {
+                const projectQuery = yield graphqlWithAuth(query, variables);
+                return projectQuery.organization.projectV2.id;
+            }
+            catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(`Failed to get project ID: ${error}`);
+                throw error;
+            }
         });
     }
     getColumnOptions(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const projectQuery = yield graphqlWithAuth(`
-      query {
-        node(id: "${projectId}") {
-          ... on ProjectV2 {
-            field(name: "${this.config.column_name}") {
-              ... on ProjectV2SingleSelectField {
+            const query = `
+    query GetColumnOptions($id: String!, $name: String!) {
+      node(id: $id) {
+        ... on ProjectV2 {
+          field(name: $name) {
+            ... on ProjectV2SingleSelectField {
+              id
+              name
+              options {
                 id
                 name
-                options {
-                  id
-                  name
-                }
               }
             }
           }
         }
       }
-    `);
+    }
+  `;
+            const variables = {
+                id: projectId,
+                name: this.config.column_name
+            };
+            try {
+                const projectQuery = yield graphqlWithAuth(query, variables);
                 return {
                     columnId: projectQuery.node.field.id,
                     columnOptions: projectQuery.node.field.options
                 };
             }
             catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(`Failed to get column options: ${error}`);
                 return {
                     columnId: '',
                     columnOptions: [{ id: '', name: '' }]
@@ -251,36 +270,41 @@ class PopulateBoard {
     }
     getBoardItems(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const projectItemsQuery = yield graphqlWithAuth(`
-      query {
-        node(id: "${projectId}") {
-          ... on ProjectV2 {
-            items(first: 100) {
-              edges {
-                node {
-                  id
-                }
+            const query = `
+    query GetBoardItems($id: String!) {
+      node(id: $id) {
+        ... on ProjectV2 {
+          items(first: 100) {
+            edges {
+              node {
+                id
               }
             }
           }
         }
       }
-    `);
+    }
+  `;
+            const variables = {
+                id: projectId
+            };
+            try {
+                const projectItemsQuery = yield graphqlWithAuth(query, variables);
                 return projectItemsQuery.node.items.edges;
             }
             catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(`Failed to get board items: ${error}`);
                 return [];
             }
         });
     }
     sanitizeName(name) {
-        var _a, _b;
         let sanitizedName = `${name}`;
         if (this.config.use_delimiter && this.config.delimiter) {
-            const processedName = sanitizedName.split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '');
+            const processedName = sanitizedName.split(this.config.delimiter);
             if (processedName.length > 1) {
-                sanitizedName = processedName.slice(1).join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
+                sanitizedName = processedName.slice(1).join(this.config.delimiter);
             }
         }
         return sanitizedName;
@@ -291,12 +315,10 @@ class PopulateBoard {
             columns.sort();
             // Sanitize the column names if we use a delimiter
             if (this.config.use_delimiter && this.config.delimiter) {
-                columns = columns.map(column => (column = this.sanitizeName(column)));
+                columns = columns.map(column => this.sanitizeName(column));
             }
             // Compact the array
-            columns = columns.filter((value, index, self) => {
-                return self.indexOf(value) === index;
-            });
+            columns = [...new Set(columns)];
             return columns;
         });
     }
@@ -304,140 +326,208 @@ class PopulateBoard {
         return __awaiter(this, void 0, void 0, function* () {
             // Delete column
             if (columnId) {
-                yield graphqlWithAuth(`
-        mutation {
-          deleteProjectV2Field(input: {
-            fieldId: "${columnId}"
-          }) {
-            clientMutationId
-          }
+                const deleteColumnQuery = `
+      mutation DeleteColumn($fieldId: String!) {
+        deleteProjectV2Field(input: { fieldId: $fieldId }) {
+          clientMutationId
         }
-      `);
+      }
+    `;
+                const deleteColumnVariables = {
+                    fieldId: columnId
+                };
+                try {
+                    yield graphqlWithAuth(deleteColumnQuery, deleteColumnVariables);
+                }
+                catch (error) {
+                    // eslint-disable-next-line no-console
+                    console.error(`Failed to delete column: ${error}`);
+                    throw error;
+                }
             }
             // Create column
-            const createColumnQuery = [];
-            for (const column of columns) {
-                createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`);
-            }
-            const fieldQuery = yield graphqlWithAuth(`
-      mutation {
-        createProjectV2Field(
-          input: {
-            projectId: "${projectId}", 
-            dataType: SINGLE_SELECT,
-            name: "${this.config.column_name}", 
-            singleSelectOptions: [${createColumnQuery.join(', ')}]
-          }
-        ){
-          projectV2Field {
-            ... on ProjectV2Field {
-              id
-            }
+            const createColumnQuery = `
+    mutation CreateColumn(
+      $projectId: String!,
+      $name: String!,
+      $singleSelectOptions: [ProjectV2FieldSingleSelectOptionInput!]!
+    ) {
+      createProjectV2Field(
+        input: {
+          projectId: $projectId, 
+          dataType: SINGLE_SELECT,
+          name: $name, 
+          singleSelectOptions: $singleSelectOptions
+        }
+      ) {
+        projectV2Field {
+          ... on ProjectV2Field {
+            id
           }
         }
       }
-    `);
-            return fieldQuery.createProjectV2Field.projectV2Field.id;
+    }
+  `;
+            const createColumnVariables = {
+                projectId,
+                name: this.config.column_name,
+                singleSelectOptions: columns.map(column => ({ name: column, description: '', color: 'GRAY' }))
+            };
+            try {
+                const fieldQuery = yield graphqlWithAuth(createColumnQuery, createColumnVariables);
+                return fieldQuery.createProjectV2Field.projectV2Field.id;
+            }
+            catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(`Failed to create column: ${error}`);
+                throw error;
+            }
         });
     }
     optionIdByName(options, name) {
-        const option = options.find(o => o.name === name);
-        if (option) {
-            return option.id;
-        }
-        else {
-            return undefined;
-            // throw new Error(`Status option not found: ${name}`)
-        }
+        var _a;
+        return (_a = options.find(o => o.name === name)) === null || _a === void 0 ? void 0 : _a.id;
     }
     emptyProject(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
             let isEmpty = false;
-            while (!isEmpty) {
-                let deleteQuery = '';
+            let iterationCount = 0;
+            const maxIterations = 30; // Set a limit to avoid infinite loops
+            while (!isEmpty && iterationCount < maxIterations) {
+                iterationCount++;
                 const boardItems = yield this.getBoardItems(graphqlWithAuth, projectId);
                 if (boardItems.length === 0) {
                     isEmpty = true;
                     break;
                 }
-                for (const i in boardItems) {
-                    deleteQuery += `
-        deleteproject${i}: deleteProjectV2Item(input: {
-          projectId: "${projectId}",
-          itemId: "${boardItems[i].node.id}"
-        }) {
-          clientMutationId
-        }
-    `;
-                }
-                if (deleteQuery !== '') {
-                    yield graphqlWithAuth(`
+                const deleteQueries = boardItems.map((item, index) => `
+      deleteproject${index}: deleteProjectV2Item(input: {
+        projectId: "${projectId}",
+        itemId: "${item.node.id}"
+      }) {
+        clientMutationId
+      }
+    `);
+                if (deleteQueries.length > 0) {
+                    const query = `
         mutation {
-          ${deleteQuery}
+          ${deleteQueries.join('\n')}
         }
-      `);
+      `;
+                    try {
+                        yield graphqlWithAuth(query);
+                    }
+                    catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error(`Failed to delete project items: ${error}`);
+                        throw error;
+                    }
                 }
+            }
+            if (iterationCount === maxIterations) {
+                // eslint-disable-next-line no-console
+                console.warn('Reached maximum iterations without emptying the project');
             }
         });
     }
     updateBoardMeta(graphqlWithAuth, projectId, board) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield graphqlWithAuth(`
-      mutation {
-        updateProjectV2(
-          input: {
-            projectId: "${projectId}",
-            title: "${board.name}",
-            shortDescription: "${board.description}"
-          }
-        ) {
-          projectV2 {
-            id
-          }
+            const query = `
+    mutation UpdateBoardMeta($projectId: String!, $title: String!, $shortDescription: String!) {
+      updateProjectV2(
+        input: {
+          projectId: $projectId,
+          title: $title,
+          shortDescription: $shortDescription
+        }
+      ) {
+        projectV2 {
+          id
         }
       }
-    `);
+    }
+  `;
+            const variables = {
+                projectId,
+                title: board.name,
+                shortDescription: board.description
+            };
+            try {
+                yield graphqlWithAuth(query, variables);
+            }
+            catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(`Failed to update board meta: ${error}`);
+                throw error;
+            }
         });
     }
     addCard(graphqlWithAuth, projectId, card) {
         return __awaiter(this, void 0, void 0, function* () {
-            const cardQuery = yield graphqlWithAuth(`
-      mutation {
-        addProjectV2DraftIssue(
-          input: {
-            projectId: "${projectId}",
-            title: "${this.sanitizeName(card.title)}",
-            body: """${card.body}"""
-          }
-        ) {
-          projectItem {
-            id
-          }
+            const query = `
+    mutation AddCard($projectId: String!, $title: String!, $body: String!) {
+      addProjectV2DraftIssue(
+        input: {
+          projectId: $projectId,
+          title: $title,
+          body: $body
+        }
+      ) {
+        projectItem {
+          id
         }
       }
-    `);
-            return cardQuery.addProjectV2DraftIssue.projectItem.id;
+    }
+  `;
+            const variables = {
+                projectId,
+                title: this.sanitizeName(card.title),
+                body: card.body
+            };
+            try {
+                const cardQuery = yield graphqlWithAuth(query, variables);
+                return cardQuery.addProjectV2DraftIssue.projectItem.id;
+            }
+            catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(`Failed to add card: ${error}`);
+                throw error;
+            }
         });
     }
     updateCardStatus(graphqlWithAuth, projectId, cardId, columnId, valueId) {
         return __awaiter(this, void 0, void 0, function* () {
             if (valueId) {
-                yield graphqlWithAuth(`
-        mutation {
-          updateProjectV2ItemFieldValue(input:{
-            projectId: "${projectId}"
-            itemId: "${cardId}"
-            fieldId: "${columnId}"
-            value: {
-              singleSelectOptionId: "${valueId}"
-            }
-          }) {
-            projectV2Item {
-              id
-            }
+                const query = `
+      mutation UpdateCardStatus($projectId: String!, $itemId: String!, $fieldId: String!, $valueId: String!) {
+        updateProjectV2ItemFieldValue(input:{
+          projectId: $projectId
+          itemId: $itemId
+          fieldId: $fieldId
+          value: {
+            singleSelectOptionId: $valueId
+          }
+        }) {
+          projectV2Item {
+            id
           }
         }
-      `);
+      }
+    `;
+                const variables = {
+                    projectId,
+                    itemId: cardId,
+                    fieldId: columnId,
+                    valueId
+                };
+                try {
+                    yield graphqlWithAuth(query, variables);
+                }
+                catch (error) {
+                    // eslint-disable-next-line no-console
+                    console.error(`Failed to update card status: ${error}`);
+                    throw error;
+                }
             }
         });
     }

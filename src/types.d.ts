@@ -22,3 +22,8 @@ export interface Card {
   body?: string
   column?: string
 }
+
+export interface SelcetOption {
+  id: string
+  name: string
+}
