@@ -292,13 +292,14 @@ class PopulateBoard {
     }
     sanitizeName(name) {
         var _a, _b;
+        let sanitizedName = name;
         if (this.config.use_delimiter && this.config.delimiter) {
-            name = name
-                .split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '')
-                .slice(1)
-                .join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
+            const processedName = name.split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '');
+            if (processedName.length > 1) {
+                sanitizedName = processedName.slice(1).join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
+            }
         }
-        return name;
+        return sanitizedName;
     }
     sortColumns(columns) {
         return __awaiter(this, void 0, void 0, function* () {

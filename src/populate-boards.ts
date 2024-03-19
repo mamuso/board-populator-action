@@ -217,14 +217,14 @@ export default class PopulateBoard {
   }
 
   sanitizeName(name: string): string {
+    let sanitizedName: string = name
     if (this.config.use_delimiter && this.config.delimiter) {
-      name = name
-        .split(this.config.delimiter ?? '')
-        .slice(1)
-        .join(this.config.delimiter ?? '')
+      const processedName = name.split(this.config.delimiter ?? '')
+      if (processedName.length > 1) {
+        sanitizedName = processedName.slice(1).join(this.config.delimiter ?? '')
+      }
     }
-
-    return name
+    return sanitizedName
   }
 
   async sortColumns(columns: string[]): Promise<string[]> {
