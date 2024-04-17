@@ -11,8 +11,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 class DefaultConfig {
     constructor() {
         this.config = {
+            organization: true,
             cards_path: 'cards',
             boards: 'boards.yml',
+            delimiter: '-',
+            use_delimiter: false,
+            development_mode: false,
+            column_name: 'Column',
             token: null
         };
     }
@@ -57,8 +62,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const populate_boards_1 = __importDefault(__nccwpck_require__(4418));
 const core = __importStar(__nccwpck_require__(2186));
 const populateConfig = {
+    organization: core.getBooleanInput('organization'),
     cards_path: core.getInput('cards_path'),
     boards: core.getInput('boards'),
+    delimiter: core.getInput('delimiter'),
+    use_delimiter: core.getBooleanInput('use_delimiter'),
+    development_mode: core.getBooleanInput('development_mode'),
+    column_name: core.getInput('column_name'),
     token: core.getInput('token')
 };
 const populate = new populate_boards_1.default(populateConfig);
@@ -118,10 +128,11 @@ class PopulateBoard {
                     }
                 });
                 for (const b of boards) {
-                    // Making sure that some board default values are set
+                    // Ensuring board default values are set
                     const board = Object.assign(Object.assign({}, this.boardDefault), b);
                     // Get the project metadata
-                    const { projectId, statusId, statusOptions, boardItems } = yield this.getProjectMetadata(graphqlWithAuth, board);
+                    const projectId = yield this.getProjectId(graphqlWithAuth, board);
+                    let { columnId, columnOptions } = yield this.getColumnOptions(graphqlWithAuth, projectId);
                     if (!projectId) {
                         throw new Error('Project ID not found');
                     }
@@ -129,22 +140,57 @@ class PopulateBoard {
                     console.log(`\n# Populating ${board.name}`);
                     // eslint-disable-next-line no-console
                     console.log(`---------------------------------------------------------------`);
-                    // Empty the project
-                    yield this.emptyProject(graphqlWithAuth, projectId, boardItems);
-                    // Update the board metadata
-                    yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
+                    // We don't need to empty the project if we are in development mode
+                    if (!this.config.development_mode) {
+                        // Empty the project
+                        yield this.emptyProject(graphqlWithAuth, projectId);
+                        // Update the board metadata
+                        yield this.updateBoardMeta(graphqlWithAuth, projectId, board);
+                    }
                     // Create cards and set status
+                    let columns = [];
+                    const cardContents = [];
                     for (const content of board.content) {
-                        // Load card content from file
-                        const cardPath = `${this.config.cards_path}/${content}.yml`;
-                        const cardContent = JSON.stringify(js_yaml_1.default.load(fs_1.default.readFileSync(cardPath, 'utf8')));
-                        const cards = JSON.parse(cardContent).cards;
-                        for (const c of cards) {
-                            // eslint-disable-next-line no-console
-                            console.log(c.title);
+                        // Columns
+                        const cardsPath = `${this.config.cards_path}/${content}/`;
+                        const folderNames = fs_1.default.readdirSync(cardsPath);
+                        columns = columns.concat(folderNames);
+                        // Parse cards
+                        for (const folderName of folderNames) {
+                            const files = fs_1.default.readdirSync(`${cardsPath}/${folderName}`).sort();
+                            for (const file of files) {
+                                if (file.endsWith('.md')) {
+                                    const cardPath = `${cardsPath}/${folderName}/${file}`;
+                                    const cardContent = fs_1.default.readFileSync(cardPath, 'utf8');
+                                    const card = {
+                                        title: file.replace('.md', ''),
+                                        body: cardContent,
+                                        column: folderName
+                                    };
+                                    cardContents.push(card);
+                                }
+                            }
+                        }
+                    }
+                    // Sort columns
+                    columns = yield this.sortColumns(columns);
+                    // Create columns
+                    if (!this.config.development_mode) {
+                        yield this.createColumn(graphqlWithAuth, projectId, columnId, columns);
+                        // refresh column options
+                        const refreshColumn = yield this.getColumnOptions(graphqlWithAuth, projectId);
+                        columnId = refreshColumn.columnId;
+                        columnOptions = refreshColumn.columnOptions;
+                    }
+                    // Insert cards
+                    for (const card of cardContents) {
+                        // eslint-disable-next-line no-console
+                        console.log(this.sanitizeName(card.title));
+                        // We don't need to add cards if we are in development mode
+                        if (!this.config.development_mode) {
                             // Add card and set status
-                            const cardId = yield this.addCard(graphqlWithAuth, projectId, c);
-                            yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, this.optionIdByName(statusOptions, (_b = c.column) !== null && _b !== void 0 ? _b : ''));
+                            const cardId = yield this.addCard(graphqlWithAuth, projectId, card);
+                            yield this.updateCardStatus(graphqlWithAuth, projectId, cardId, columnId, this.optionIdByName(columnOptions, (_b = this.sanitizeName(card.column)) !== null && _b !== void 0 ? _b : ''));
                         }
                     }
                 }
@@ -155,22 +201,61 @@ class PopulateBoard {
             }
         });
     }
-    getProjectMetadata(graphqlWithAuth, board) {
+    getProjectId(graphqlWithAuth, board) {
         return __awaiter(this, void 0, void 0, function* () {
             const projectQuery = yield graphqlWithAuth(`
       query {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
-            field(name:"Status") {
+          }
+        }
+      }
+    `);
+            return projectQuery.organization.projectV2.id;
+        });
+    }
+    getColumnOptions(graphqlWithAuth, projectId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const projectQuery = yield graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+            field(name: "${this.config.column_name}") {
               ... on ProjectV2SingleSelectField {
                 id
+                name
                 options {
                   id
                   name
                 }
               }
             }
+          }
+        }
+      }
+    `);
+                return {
+                    columnId: projectQuery.node.field.id,
+                    columnOptions: projectQuery.node.field.options
+                };
+            }
+            catch (error) {
+                return {
+                    columnId: '',
+                    columnOptions: [{ id: '', name: '' }]
+                };
+            }
+        });
+    }
+    getBoardItems(graphqlWithAuth, projectId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const projectItemsQuery = yield graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
             items(first: 100) {
               edges {
                 node {
@@ -182,12 +267,77 @@ class PopulateBoard {
         }
       }
     `);
-            return {
-                projectId: projectQuery.organization.projectV2.id,
-                statusId: projectQuery.organization.projectV2.field.id,
-                statusOptions: projectQuery.organization.projectV2.field.options,
-                boardItems: projectQuery.organization.projectV2.items.edges
-            };
+                return projectItemsQuery.node.items.edges;
+            }
+            catch (error) {
+                return [];
+            }
+        });
+    }
+    sanitizeName(name) {
+        var _a, _b;
+        let sanitizedName = `${name}`;
+        if (this.config.use_delimiter && this.config.delimiter) {
+            const processedName = sanitizedName.split((_a = this.config.delimiter) !== null && _a !== void 0 ? _a : '');
+            if (processedName.length > 1) {
+                sanitizedName = processedName.slice(1).join((_b = this.config.delimiter) !== null && _b !== void 0 ? _b : '');
+            }
+        }
+        return sanitizedName;
+    }
+    sortColumns(columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Sort columns
+            columns.sort();
+            // Sanitize the column names if we use a delimiter
+            if (this.config.use_delimiter && this.config.delimiter) {
+                columns = columns.map(column => (column = this.sanitizeName(column)));
+            }
+            // Compact the array
+            columns = columns.filter((value, index, self) => {
+                return self.indexOf(value) === index;
+            });
+            return columns;
+        });
+    }
+    createColumn(graphqlWithAuth, projectId, columnId, columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Delete column
+            if (columnId) {
+                yield graphqlWithAuth(`
+        mutation {
+          deleteProjectV2Field(input: {
+            fieldId: "${columnId}"
+          }) {
+            clientMutationId
+          }
+        }
+      `);
+            }
+            // Create column
+            const createColumnQuery = [];
+            for (const column of columns) {
+                createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`);
+            }
+            const fieldQuery = yield graphqlWithAuth(`
+      mutation {
+        createProjectV2Field(
+          input: {
+            projectId: "${projectId}", 
+            dataType: SINGLE_SELECT,
+            name: "${this.config.column_name}", 
+            singleSelectOptions: [${createColumnQuery.join(', ')}]
+          }
+        ){
+          projectV2Field {
+            ... on ProjectV2Field {
+              id
+            }
+          }
+        }
+      }
+    `);
+            return fieldQuery.createProjectV2Field.projectV2Field.id;
         });
     }
     optionIdByName(options, name) {
@@ -200,11 +350,18 @@ class PopulateBoard {
             // throw new Error(`Status option not found: ${name}`)
         }
     }
-    emptyProject(graphqlWithAuth, projectId, boardItems) {
+    emptyProject(graphqlWithAuth, projectId) {
         return __awaiter(this, void 0, void 0, function* () {
-            let deleteQuery = '';
-            for (const i in boardItems) {
-                deleteQuery += `
+            let isEmpty = false;
+            while (!isEmpty) {
+                let deleteQuery = '';
+                const boardItems = yield this.getBoardItems(graphqlWithAuth, projectId);
+                if (boardItems.length === 0) {
+                    isEmpty = true;
+                    break;
+                }
+                for (const i in boardItems) {
+                    deleteQuery += `
         deleteproject${i}: deleteProjectV2Item(input: {
           projectId: "${projectId}",
           itemId: "${boardItems[i].node.id}"
@@ -212,13 +369,14 @@ class PopulateBoard {
           clientMutationId
         }
     `;
-            }
-            if (deleteQuery !== '') {
-                yield graphqlWithAuth(`
+                }
+                if (deleteQuery !== '') {
+                    yield graphqlWithAuth(`
         mutation {
           ${deleteQuery}
         }
       `);
+                }
             }
         });
     }
@@ -248,8 +406,8 @@ class PopulateBoard {
         addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "${card.title}",
-            body: "${card.body}"
+            title: "${this.sanitizeName(card.title)}",
+            body: """${card.body}"""
           }
         ) {
           projectItem {
@@ -261,7 +419,7 @@ class PopulateBoard {
             return cardQuery.addProjectV2DraftIssue.projectItem.id;
         });
     }
-    updateCardStatus(graphqlWithAuth, projectId, cardId, statusId, valueId) {
+    updateCardStatus(graphqlWithAuth, projectId, cardId, columnId, valueId) {
         return __awaiter(this, void 0, void 0, function* () {
             if (valueId) {
                 yield graphqlWithAuth(`
@@ -269,7 +427,7 @@ class PopulateBoard {
           updateProjectV2ItemFieldValue(input:{
             projectId: "${projectId}"
             itemId: "${cardId}"
-            fieldId: "${statusId}"
+            fieldId: "${columnId}"
             value: {
               singleSelectOptionId: "${valueId}"
             }

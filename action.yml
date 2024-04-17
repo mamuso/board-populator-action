@@ -2,12 +2,27 @@ name: 'populate-boards-action'
 description: 'An action to compose and populate GitHub org boards (memex) with draft issues.'
 author: 'mamuso <mamuso@mamuso.net>'
 inputs:
+  organization:
+    description: '(TODO: write a proper description).'
+    default: true
   cards_path:
     description: 'Path to the cards to populate the board with.'
     default: 'cards/'
   boards:
     description: 'Path to yaml file with boards information.'
     default: 'boards.yml'
+  delimiter:
+    description: '(TODO: write a proper description).'
+    default: '-'
+  use_delimiter:
+    description: '(TODO: write a proper description).'
+    default: false
+  development_mode:
+    description: '(TODO: write a proper description).'
+    default: false
+  column_name:
+    description: '(TODO: write a proper description).'
+    default: 'Column'
   token:
     description: 'Token to authenticate with GitHub'
 runs:

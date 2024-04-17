@@ -30,7 +30,6 @@ export default class PopulateBoard {
       } else {
         auth = createTokenAuth(this.config.token ?? '')
       }
-
       const graphqlWithAuth = graphql.defaults({
         request: {
           hook: auth?.hook
@@ -38,14 +37,15 @@ export default class PopulateBoard {
       })
 
       for (const b of boards) {
-        // Making sure that some board default values are set
+        // Ensuring board default values are set
         const board: Board = {
           ...this.boardDefault,
           ...b
         }
 
         // Get the project metadata
-        const {projectId, statusId, statusOptions, boardItems} = await this.getProjectMetadata(graphqlWithAuth, board)
+        const projectId = await this.getProjectId(graphqlWithAuth, board)
+        let {columnId, columnOptions} = await this.getColumnOptions(graphqlWithAuth, projectId)
         if (!projectId) {
           throw new Error('Project ID not found')
         }
@@ -55,31 +55,69 @@ export default class PopulateBoard {
         // eslint-disable-next-line no-console
         console.log(`---------------------------------------------------------------`)
 
-        // Empty the project
-        await this.emptyProject(graphqlWithAuth, projectId, boardItems)
+        // We don't need to empty the project if we are in development mode
+        if (!this.config.development_mode) {
+          // Empty the project
+          await this.emptyProject(graphqlWithAuth, projectId)
 
-        // Update the board metadata
-        await this.updateBoardMeta(graphqlWithAuth, projectId, board)
+          // Update the board metadata
+          await this.updateBoardMeta(graphqlWithAuth, projectId, board)
+        }
 
         // Create cards and set status
+        let columns: string[] = []
+        const cardContents: Card[] = []
         for (const content of board.content) {
-          // Load card content from file
-          const cardPath = `${this.config.cards_path}/${content}.yml`
-          const cardContent = JSON.stringify(yaml.load(fs.readFileSync(cardPath, 'utf8')))
-          const cards: Card[] = JSON.parse(cardContent).cards
+          // Columns
+          const cardsPath = `${this.config.cards_path}/${content}/`
+          const folderNames = fs.readdirSync(cardsPath)
+          columns = columns.concat(folderNames)
 
-          for (const c of cards) {
-            // eslint-disable-next-line no-console
-            console.log(c.title)
+          // Parse cards
+          for (const folderName of folderNames) {
+            const files = fs.readdirSync(`${cardsPath}/${folderName}`).sort()
+            for (const file of files) {
+              if (file.endsWith('.md')) {
+                const cardPath = `${cardsPath}/${folderName}/${file}`
+                const cardContent = fs.readFileSync(cardPath, 'utf8')
+                const card: Card = {
+                  title: file.replace('.md', ''),
+                  body: cardContent,
+                  column: folderName
+                }
+                cardContents.push(card)
+              }
+            }
+          }
+        }
 
+        // Sort columns
+        columns = await this.sortColumns(columns)
+
+        // Create columns
+        if (!this.config.development_mode) {
+          await this.createColumn(graphqlWithAuth, projectId, columnId, columns)
+          // refresh column options
+          const refreshColumn = await this.getColumnOptions(graphqlWithAuth, projectId)
+          columnId = refreshColumn.columnId
+          columnOptions = refreshColumn.columnOptions
+        }
+
+        // Insert cards
+        for (const card of cardContents) {
+          // eslint-disable-next-line no-console
+          console.log(this.sanitizeName(card.title))
+
+          // We don't need to add cards if we are in development mode
+          if (!this.config.development_mode) {
             // Add card and set status
-            const cardId: string = await this.addCard(graphqlWithAuth, projectId, c)
+            const cardId: string = await this.addCard(graphqlWithAuth, projectId, card)
             await this.updateCardStatus(
               graphqlWithAuth,
               projectId,
               cardId,
-              statusId,
-              this.optionIdByName(statusOptions, c.column ?? '')
+              columnId,
+              this.optionIdByName(columnOptions, this.sanitizeName(card.column) ?? '')
             )
           }
         }
@@ -90,29 +128,65 @@ export default class PopulateBoard {
     }
   }
 
-  async getProjectMetadata(
-    graphqlWithAuth: typeof graphql,
-    board: Board
-  ): Promise<{
-    projectId: string
-    statusId: string
-    statusOptions: [{id: string; name: string}]
-    boardItems: [{node: {id: string}}]
-  }> {
+  async getProjectId(graphqlWithAuth: typeof graphql, board: Board): Promise<string> {
     const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
       query {
         organization(login:"${board.owner}"){
           projectV2(number: ${board.board_id}) {
             id
-            field(name:"Status") {
+          }
+        }
+      }
+    `)
+
+    return projectQuery.organization.projectV2.id
+  }
+
+  async getColumnOptions(
+    graphqlWithAuth: typeof graphql,
+    projectId: string
+  ): Promise<{
+    columnId: string
+    columnOptions: [{id: string; name: string}]
+  }> {
+    try {
+      const projectQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
+            field(name: "${this.config.column_name}") {
               ... on ProjectV2SingleSelectField {
                 id
+                name
                 options {
                   id
                   name
                 }
               }
             }
+          }
+        }
+      }
+    `)
+
+      return {
+        columnId: projectQuery.node.field.id,
+        columnOptions: projectQuery.node.field.options
+      }
+    } catch (error) {
+      return {
+        columnId: '',
+        columnOptions: [{id: '', name: ''}]
+      }
+    }
+  }
+
+  async getBoardItems(graphqlWithAuth: typeof graphql, projectId: string): Promise<[{node: {id: string}}] | []> {
+    try {
+      const projectItemsQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      query {
+        node(id: "${projectId}") {
+          ... on ProjectV2 {
             items(first: 100) {
               edges {
                 node {
@@ -125,12 +199,83 @@ export default class PopulateBoard {
       }
     `)
 
-    return {
-      projectId: projectQuery.organization.projectV2.id,
-      statusId: projectQuery.organization.projectV2.field.id,
-      statusOptions: projectQuery.organization.projectV2.field.options,
-      boardItems: projectQuery.organization.projectV2.items.edges
+      return projectItemsQuery.node.items.edges
+    } catch (error) {
+      return []
     }
+  }
+
+  sanitizeName(name: string | undefined): string {
+    let sanitizedName = `${name}`
+    if (this.config.use_delimiter && this.config.delimiter) {
+      const processedName = sanitizedName.split(this.config.delimiter ?? '')
+      if (processedName.length > 1) {
+        sanitizedName = processedName.slice(1).join(this.config.delimiter ?? '')
+      }
+    }
+    return sanitizedName
+  }
+
+  async sortColumns(columns: string[]): Promise<string[]> {
+    // Sort columns
+    columns.sort()
+
+    // Sanitize the column names if we use a delimiter
+    if (this.config.use_delimiter && this.config.delimiter) {
+      columns = columns.map(column => (column = this.sanitizeName(column)))
+    }
+
+    // Compact the array
+    columns = columns.filter((value, index, self) => {
+      return self.indexOf(value) === index
+    })
+
+    return columns
+  }
+
+  async createColumn(
+    graphqlWithAuth: typeof graphql,
+    projectId: string,
+    columnId: string,
+    columns: string[]
+  ): Promise<string> {
+    // Delete column
+    if (columnId) {
+      await graphqlWithAuth(`
+        mutation {
+          deleteProjectV2Field(input: {
+            fieldId: "${columnId}"
+          }) {
+            clientMutationId
+          }
+        }
+      `)
+    }
+    // Create column
+    const createColumnQuery: string[] = []
+    for (const column of columns) {
+      createColumnQuery.push(`{name: "${column}", description: "", color: GRAY}`)
+    }
+    const fieldQuery: GraphQlQueryResponseData = await graphqlWithAuth(`
+      mutation {
+        createProjectV2Field(
+          input: {
+            projectId: "${projectId}", 
+            dataType: SINGLE_SELECT,
+            name: "${this.config.column_name}", 
+            singleSelectOptions: [${createColumnQuery.join(', ')}]
+          }
+        ){
+          projectV2Field {
+            ... on ProjectV2Field {
+              id
+            }
+          }
+        }
+      }
+    `)
+
+    return fieldQuery.createProjectV2Field.projectV2Field.id
   }
 
   optionIdByName(options: [{id: string; name: string}], name: string): string | undefined {
@@ -143,15 +288,20 @@ export default class PopulateBoard {
     }
   }
 
-  async emptyProject(
-    graphqlWithAuth: typeof graphql,
-    projectId: string,
-    boardItems: [{node: {id: string}}]
-  ): Promise<void> {
-    let deleteQuery = ''
+  async emptyProject(graphqlWithAuth: typeof graphql, projectId: string): Promise<void> {
+    let isEmpty = false
+    while (!isEmpty) {
+      let deleteQuery = ''
 
-    for (const i in boardItems) {
-      deleteQuery += `
+      const boardItems = await this.getBoardItems(graphqlWithAuth, projectId)
+
+      if (boardItems.length === 0) {
+        isEmpty = true
+        break
+      }
+
+      for (const i in boardItems) {
+        deleteQuery += `
         deleteproject${i}: deleteProjectV2Item(input: {
           projectId: "${projectId}",
           itemId: "${boardItems[i].node.id}"
@@ -159,13 +309,14 @@ export default class PopulateBoard {
           clientMutationId
         }
     `
-    }
-    if (deleteQuery !== '') {
-      await graphqlWithAuth(`
+      }
+      if (deleteQuery !== '') {
+        await graphqlWithAuth(`
         mutation {
           ${deleteQuery}
         }
       `)
+      }
     }
   }
 
@@ -193,8 +344,8 @@ export default class PopulateBoard {
         addProjectV2DraftIssue(
           input: {
             projectId: "${projectId}",
-            title: "${card.title}",
-            body: "${card.body}"
+            title: "${this.sanitizeName(card.title)}",
+            body: """${card.body}"""
           }
         ) {
           projectItem {
@@ -211,7 +362,7 @@ export default class PopulateBoard {
     graphqlWithAuth: typeof graphql,
     projectId: string,
     cardId: string,
-    statusId: string,
+    columnId: string,
     valueId: string | undefined
   ): Promise<void> {
     if (valueId) {
@@ -220,7 +371,7 @@ export default class PopulateBoard {
           updateProjectV2ItemFieldValue(input:{
             projectId: "${projectId}"
             itemId: "${cardId}"
-            fieldId: "${statusId}"
+            fieldId: "${columnId}"
             value: {
               singleSelectOptionId: "${valueId}"
             }
